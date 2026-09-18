@@ -1,0 +1,23 @@
+export const metadata = {
+  title: 'Shop Manager — दुकान खाता',
+  description: 'ग्राहक उधार खाता — offline-friendly PWA',
+  manifest: '/manifest.json'
+};
+export const viewport = {
+  themeColor: '#0f1420',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1
+};
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="hi">
+      <head>
+        <link rel="stylesheet" href="/app.css" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}
