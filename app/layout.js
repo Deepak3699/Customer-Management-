@@ -1,6 +1,6 @@
 export const metadata = {
-  title: 'Shop Manager — दुकान खाता',
-  description: 'ग्राहक उधार खाता — offline-friendly PWA',
+  title: 'Salhotra Multi Store — Customer Manager',
+  description: 'ग्राहक उधार खाता — Salhotra Multi Store PWA',
   manifest: '/manifest.json'
 };
 export const viewport = {
@@ -15,6 +15,7 @@ export default function RootLayout({ children }) {
     <html lang="hi">
       <head>
         <link rel="stylesheet" href="/app.css" />
+        <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       <body>{children}</body>

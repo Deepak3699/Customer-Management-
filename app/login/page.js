@@ -62,21 +62,21 @@ export default function Login() {
         borderRadius: 16
       }}>
         <div style={{
-          width: 64,
-          height: 64,
-          borderRadius: 20,
-          background: 'rgba(59, 130, 246, 0.12)',
-          border: '1px solid rgba(59, 130, 246, 0.25)',
+          width: 72,
+          height: 72,
+          borderRadius: 18,
+          overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: 32,
-          marginBottom: 16
+          marginBottom: 16,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+          border: '1px solid var(--line)'
         }}>
-          🏪
+          <img src="/logo.png" alt="Salhotra Multi Store" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
 
-        <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, letterSpacing: '-0.02em' }}>Shop Manager</h2>
+        <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, letterSpacing: '-0.02em' }}>Salhotra Multi Store</h2>
         <p className="mut sml" style={{ marginBottom: 24, fontSize: 13 }}>अपना PIN डालें</p>
 
         {/* PIN Indicators */}

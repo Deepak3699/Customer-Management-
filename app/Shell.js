@@ -142,56 +142,64 @@ export default function Shell() {
   }[view];
 
   return (
-    <div id="app">
-      <aside id="side" className={nav ? 'open' : ''}>
-        <div className="brand"><b>Shop Manager</b><span>{T('दुकान खाता')} · {LIMITS.label}</span></div>
-        <nav id="nav">
-          {NAV.map(([g, xs]) => (
-            <div key={g}>
-              <div className="grp">{T(g)}</div>
-              {xs.map(([id, ic, t]) => (
-                <a key={id} className={view === id ? 'on' : ''} onClick={() => go(id)}>
-                  <i>{ic}</i>{T(t)}
-                </a>
-              ))}
+    <>
+      <div id="app">
+        <aside id="side" className={nav ? 'open' : ''}>
+          <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <img src="/logo.png" alt="Logo" style={{ width: 34, height: 34, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+            <div>
+              <b style={{ fontSize: 15, lineHeight: 1.2, display: 'block' }}>Salhotra Multi Store</b>
+              <span style={{ fontSize: 11, color: 'var(--mut)' }}>Customer Manager</span>
             </div>
-          ))}
-        </nav>
-        <div className="foot">
-          <button className="btn sm o" style={{ flex: 1 }}
-            onClick={() => switchLang(lang === 'hi' ? 'en' : 'hi')}>A/अ</button>
-          <button className="btn sm o" onClick={toggleTheme}>🌓</button>
-          <button className="btn sm o" onClick={async () => {
-            await fetch('/api/auth/logout', { method: 'POST' }); location.href = '/login';
-          }}>⏻</button>
-        </div>
-      </aside>
-
-      {nav && <div className="navmask" onClick={() => setNav(false)} />}
-
-      <main id="main">
-        <header id="top">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button className="btn sm o hamb" onClick={() => setNav(true)}>☰</button>
-            <h2 id="title">{T(TITLES[view])}</h2>
           </div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <button className="btn sm o" onClick={refresh} title="Refresh">
-              {busy ? '⏳' : '↻'}
-            </button>
+          <nav id="nav">
+            {NAV.map(([g, xs]) => (
+              <div key={g}>
+                <div className="grp">{T(g)}</div>
+                {xs.map(([id, ic, t]) => (
+                  <a key={id} className={view === id ? 'on' : ''} onClick={() => go(id)}>
+                    <i>{ic}</i>{T(t)}
+                  </a>
+                ))}
+              </div>
+            ))}
+          </nav>
+          <div className="foot">
+            <button className="btn sm o" style={{ flex: 1 }}
+              onClick={() => switchLang(lang === 'hi' ? 'en' : 'hi')}>A/अ</button>
+            <button className="btn sm o" onClick={toggleTheme}>🌓</button>
+            <button className="btn sm o" onClick={async () => {
+              await fetch('/api/auth/logout', { method: 'POST' }); location.href = '/login';
+            }}>⏻</button>
           </div>
-        </header>
-        <section id="view">
-          <Screen key={view + tick} {...ctx} />
-        </section>
-      </main>
+        </aside>
 
-      {modal && <div className="mask" onClick={e => e.target === e.currentTarget && setModal(null)}>
-        {modal}
-      </div>}
-      <Toasts />
+        {nav && <div className="navmask" onClick={() => setNav(false)} />}
+
+        <main id="main">
+          <header id="top">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button className="btn sm o hamb" onClick={() => setNav(true)}>☰</button>
+              <h2 id="title">{T(TITLES[view])}</h2>
+            </div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <button className="btn sm o" onClick={refresh} title="Refresh">
+                {busy ? '⏳' : '↻'}
+              </button>
+            </div>
+          </header>
+          <section id="view">
+            <Screen key={view + tick} {...ctx} />
+          </section>
+        </main>
+
+        {modal && <div className="mask" onClick={e => e.target === e.currentTarget && setModal(null)}>
+          {modal}
+        </div>}
+        <Toasts />
+      </div>
       <div id="printarea" />
-    </div>
+    </>
   );
 }
 
@@ -1190,73 +1198,184 @@ async function shopInfo() {
 }
 async function doPrint(bodyHtml, title) {
   const s = await shopInfo();
-  const head = `<div class="ph"><h1>${s.name || ''}</h1>
-    <p>${s.address || ''} · ${T('मो.')} ${s.mobile || ''}</p></div>
-    <h2 style="text-align:center">${title}</h2>`;
-  const foot = `<div class="pf">${T('जनरेट')}: ${fmtDate(today())} · Shop Manager</div>`;
+  const shopName = (s?.name && s.name !== 'मेरी दुकान') ? s.name : 'Salhotra Multi Store';
+  const head = `
+    <div class="ph" style="display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #0f172a;padding-bottom:12px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:14px">
+        <img src="/logo.png" style="width:52px;height:52px;border-radius:10px;object-fit:cover" alt="Logo" />
+        <div style="text-align:left">
+          <h1 style="font-size:22px;font-weight:800;margin:0;color:#0f172a;letter-spacing:-0.02em">${shopName}</h1>
+          <p style="margin:3px 0 0;font-size:12px;color:#475569">${s.address || 'मुख्य बाज़ार'} ${s.mobile ? `· ${T('मो.')} ${s.mobile}` : ''}</p>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <span style="display:inline-block;padding:5px 12px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;font-weight:700;color:#0f172a">${title}</span>
+        <div style="font-size:11px;color:#64748b;margin-top:4px">${T('तारीख')}: ${fmtDate(today())}</div>
+      </div>
+    </div>`;
+  const foot = `<div class="pf" style="margin-top:24px;border-top:1px solid #e2e8f0;padding-top:8px;font-size:11px;text-align:center;color:#64748b">${T('जनरेट')}: ${fmtDate(today())} · Salhotra Multi Store — Customer Manager</div>`;
   const el = document.getElementById('printarea');
-  el.innerHTML = head + bodyHtml + foot;
-  setTimeout(() => window.print(), 80);
+  if (el) {
+    el.innerHTML = head + bodyHtml + foot;
+    setTimeout(() => window.print(), 100);
+  }
 }
 
 function printBill(s) {
   doPrint(`
-  <table style="border:0;margin-bottom:8px"><tr style="border:0">
-    <td style="border:0"><b>${T('बिल नं')}:</b> ${s.bill_no}<br><b>${T('तारीख')}:</b> ${fmtDate(s.bill_date)}</td>
-    <td style="border:0;text-align:right"><b>${T('ग्राहक')}:</b> ${s.customer_name || ''}</td></tr></table>
-  <table><thead><tr><th>#</th><th>${T('आइटम')}</th><th>${T('मात्रा')}</th><th>${T('भाव')}</th><th>${T('रकम')}</th></tr></thead>
-  <tbody>${s.items.map((l, i) => `<tr><td>${i + 1}</td><td>${l.name}</td>
-    <td>${l.qty} ${l.unit}</td><td>${money(l.rate)}</td><td>${money(l.amount)}</td></tr>`).join('')}
-  <tr><td colspan="4" style="text-align:right"><b>${T('कुल')}</b></td><td><b>${money(s.total)}</b></td></tr>
-  <tr><td colspan="4" style="text-align:right">${T('भुगतान')} (${s.pay_mode})</td><td>${money(s.paid)}</td></tr>
-  ${Number(s.due) ? `<tr><td colspan="4" style="text-align:right"><b>${T('बाकी (उधार)')}</b></td><td><b>${money(s.due)}</b></td></tr>` : ''}
-  </tbody></table>`, T('बिल / INVOICE'));
+  <table style="width:100%;border:0;margin-bottom:12px;border-collapse:collapse">
+    <tr style="border:0">
+      <td style="border:0;padding:4px 0;font-size:12px"><b>${T('बिल नं')}:</b> ${s.bill_no}<br><b>${T('तारीख')}:</b> ${fmtDate(s.bill_date)}</td>
+      <td style="border:0;padding:4px 0;text-align:right;font-size:12px"><b>${T('ग्राहक')}:</b> ${s.customer_name || 'नकद ग्राहक'}</td>
+    </tr>
+  </table>
+  <table style="width:100%;border-collapse:collapse;margin-bottom:12px">
+    <thead>
+      <tr style="background:#f1f5f9">
+        <th style="border:1px solid #cbd5e1;padding:7px;font-size:11px;text-align:center;width:32px">#</th>
+        <th style="border:1px solid #cbd5e1;padding:7px;font-size:11px;text-align:left">${T('आइटम')}</th>
+        <th style="border:1px solid #cbd5e1;padding:7px;font-size:11px;text-align:right;width:70px">${T('मात्रा')}</th>
+        <th style="border:1px solid #cbd5e1;padding:7px;font-size:11px;text-align:right;width:80px">${T('भाव')}</th>
+        <th style="border:1px solid #cbd5e1;padding:7px;font-size:11px;text-align:right;width:90px">${T('रकम')}</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${s.items.map((l, i) => `
+        <tr>
+          <td style="border:1px solid #cbd5e1;padding:7px;text-align:center;font-size:11px">${i + 1}</td>
+          <td style="border:1px solid #cbd5e1;padding:7px;font-size:11px">${l.name}</td>
+          <td style="border:1px solid #cbd5e1;padding:7px;text-align:right;font-size:11px">${l.qty} ${l.unit}</td>
+          <td style="border:1px solid #cbd5e1;padding:7px;text-align:right;font-size:11px">${money(l.rate)}</td>
+          <td style="border:1px solid #cbd5e1;padding:7px;text-align:right;font-size:11px;font-weight:600">${money(l.amount)}</td>
+        </tr>`).join('')}
+      <tr>
+        <td colspan="4" style="border:1px solid #cbd5e1;padding:7px;text-align:right;font-weight:700;font-size:12px">${T('कुल')}</td>
+        <td style="border:1px solid #cbd5e1;padding:7px;text-align:right;font-weight:700;font-size:12px">${money(s.total)}</td>
+      </tr>
+      <tr>
+        <td colspan="4" style="border:1px solid #cbd5e1;padding:7px;text-align:right;font-size:11px">${T('भुगतान')} (${s.pay_mode})</td>
+        <td style="border:1px solid #cbd5e1;padding:7px;text-align:right;font-size:11px">${money(s.paid)}</td>
+      </tr>
+      ${Number(s.due) ? `
+      <tr style="background:#fff1f2">
+        <td colspan="4" style="border:1px solid #fecdd3;padding:7px;text-align:right;font-weight:700;color:#e11d48;font-size:12px">${T('बाकी (उधार)')}</td>
+        <td style="border:1px solid #fecdd3;padding:7px;text-align:right;font-weight:700;color:#e11d48;font-size:12px">${money(s.due)}</td>
+      </tr>` : ''}
+    </tbody>
+  </table>`, T('बिल / INVOICE'));
 }
 
 function printDefaulters(rows, ageing) {
   const tot = rows.reduce((s, c) => s + Number(c.balance), 0);
   doPrint(`
-  <p style="font-size:11px">${T('कुल बकाया')}: <b>${money(tot)}</b> · ${T('ग्राहक')}: <b>${rows.length}</b></p>
-  <table style="margin-top:8px"><thead><tr>
-    ${['0-15', '16-30', '31-60', '60+'].map(k => `<th>${k} ${T('दिन')}</th>`).join('')}</tr></thead>
-    <tbody><tr>${['0-15', '16-30', '31-60', '60+'].map(k => `<td>${money(ageing[k] || 0)}</td>`).join('')}</tr></tbody></table>
-  <table style="margin-top:12px"><thead><tr><th>${T('क्र.')}</th><th>${T('ग्राहक')}</th><th>${T('मोबाइल')}</th>
-    <th>${T('बकाया')}</th><th>${T('दिन')}</th></tr></thead>
-  <tbody>${rows.map((c, i) => `<tr><td>${i + 1}</td><td>${c.name}</td><td>${c.mobile || ''}</td>
-    <td><b>${money(c.balance)}</b></td><td>${c.days_overdue}</td></tr>`).join('')}
-  <tr><td colspan="3" style="text-align:right"><b>${T('कुल')}</b></td>
-    <td><b>${money(tot)}</b></td><td></td></tr></tbody></table>`,
-    T('उधार / बकाया ग्राहक सूची'));
+  <p style="font-size:12px;margin-bottom:10px">${T('कुल बकाया')}: <b>${money(tot)}</b> · ${T('ग्राहक')}: <b>${rows.length}</b></p>
+  <table style="width:100%;border-collapse:collapse;margin-bottom:14px">
+    <thead>
+      <tr style="background:#f1f5f9">
+        ${['0-15', '16-30', '31-60', '60+'].map(k => `<th style="border:1px solid #cbd5e1;padding:6px;text-align:center;font-size:11px">${k} ${T('दिन')}</th>`).join('')}
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        ${['0-15', '16-30', '31-60', '60+'].map(k => `<td style="border:1px solid #cbd5e1;padding:6px;text-align:center;font-size:11px;font-weight:600">${money(ageing[k] || 0)}</td>`).join('')}
+      </tr>
+    </tbody>
+  </table>
+  <table style="width:100%;border-collapse:collapse">
+    <thead>
+      <tr style="background:#f1f5f9">
+        <th style="border:1px solid #cbd5e1;padding:6px;font-size:11px;width:30px">#</th>
+        <th style="border:1px solid #cbd5e1;padding:6px;font-size:11px;text-align:left">${T('ग्राहक')}</th>
+        <th style="border:1px solid #cbd5e1;padding:6px;font-size:11px;text-align:left">${T('मोबाइल')}</th>
+        <th style="border:1px solid #cbd5e1;padding:6px;font-size:11px;text-align:right">${T('बकाया')}</th>
+        <th style="border:1px solid #cbd5e1;padding:6px;font-size:11px;text-align:center">${T('दिन')}</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows.map((c, i) => `
+        <tr>
+          <td style="border:1px solid #cbd5e1;padding:6px;text-align:center;font-size:11px">${i + 1}</td>
+          <td style="border:1px solid #cbd5e1;padding:6px;font-size:11px">${c.name}</td>
+          <td style="border:1px solid #cbd5e1;padding:6px;font-size:11px">${c.mobile || ''}</td>
+          <td style="border:1px solid #cbd5e1;padding:6px;text-align:right;font-size:11px;font-weight:700;color:#e11d48">${money(c.balance)}</td>
+          <td style="border:1px solid #cbd5e1;padding:6px;text-align:center;font-size:11px">${c.days_overdue}</td>
+        </tr>`).join('')}
+      <tr style="background:#f8fafc">
+        <td colspan="3" style="border:1px solid #cbd5e1;padding:7px;text-align:right;font-weight:700;font-size:12px"><b>${T('कुल')}</b></td>
+        <td style="border:1px solid #cbd5e1;padding:7px;text-align:right;font-weight:800;font-size:12px;color:#e11d48">${money(tot)}</td>
+        <td style="border:1px solid #cbd5e1"></td>
+      </tr>
+    </tbody>
+  </table>`,
+  T('उधार / बकाया ग्राहक सूची'));
 }
 
 function printLedger(c) {
   doPrint(`
-  <p style="font-size:11px"><b>${c.name}</b> · ${c.mobile || ''} · ${c.address || ''}</p>
-  <table style="margin-top:8px"><thead><tr><th>${T('तारीख')}</th><th>${T('विवरण')}</th>
-    <th>${T('उधार')}</th><th>${T('जमा')}</th><th>${T('बैलेंस')}</th></tr></thead>
-  <tbody>${c.ledger.map(r => `<tr><td>${fmtDate(r.date)}</td><td>${T(r.desc)}</td>
-    <td>${Number(r.dr) ? money(r.dr) : ''}</td><td>${Number(r.cr) ? money(r.cr) : ''}</td>
-    <td>${money(r.bal)}</td></tr>`).join('')}
-  <tr><td colspan="4" style="text-align:right"><b>${T('कुल बकाया')}</b></td>
-    <td><b>${money(c.balance)}</b></td></tr></tbody></table>`,
-    T('ग्राहक खाता विवरण'));
+  <div style="margin-bottom:12px;padding:8px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;font-size:12px">
+    <b>${c.name}</b> ${c.mobile ? `· ${c.mobile}` : ''} ${c.address ? `· ${c.address}` : ''}
+  </div>
+  <table style="width:100%;border-collapse:collapse">
+    <thead>
+      <tr style="background:#f1f5f9">
+        <th style="border:1px solid #cbd5e1;padding:6px;text-align:left;font-size:11px">${T('तारीख')}</th>
+        <th style="border:1px solid #cbd5e1;padding:6px;text-align:left;font-size:11px">${T('विवरण')}</th>
+        <th style="border:1px solid #cbd5e1;padding:6px;text-align:right;font-size:11px">${T('उधार')}</th>
+        <th style="border:1px solid #cbd5e1;padding:6px;text-align:right;font-size:11px">${T('जमा')}</th>
+        <th style="border:1px solid #cbd5e1;padding:6px;text-align:right;font-size:11px">${T('बैलेंस')}</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${(c.ledger || []).map(r => `
+        <tr>
+          <td style="border:1px solid #cbd5e1;padding:6px;font-size:11px">${fmtDate(r.date)}</td>
+          <td style="border:1px solid #cbd5e1;padding:6px;font-size:11px">${T(r.desc)}</td>
+          <td style="border:1px solid #cbd5e1;padding:6px;text-align:right;font-size:11px;color:#e11d48">${Number(r.dr) ? money(r.dr) : ''}</td>
+          <td style="border:1px solid #cbd5e1;padding:6px;text-align:right;font-size:11px;color:#16a34a">${Number(r.cr) ? money(r.cr) : ''}</td>
+          <td style="border:1px solid #cbd5e1;padding:6px;text-align:right;font-size:11px;font-weight:700">${money(r.bal)}</td>
+        </tr>`).join('')}
+      <tr style="background:#f8fafc">
+        <td colspan="4" style="border:1px solid #cbd5e1;padding:8px;text-align:right;font-weight:700;font-size:12px"><b>${T('कुल बकाया')}</b></td>
+        <td style="border:1px solid #cbd5e1;padding:8px;text-align:right;font-weight:800;font-size:12px;color:#e11d48">${money(c.balance)}</td>
+      </tr>
+    </tbody>
+  </table>`,
+  T('ग्राहक खाता विवरण'));
 }
 
 function printPL(pl, items) {
   doPrint(`
-  <table><tbody>
-    <tr><td>${T('कुल बिक्री')} (${pl.bills} ${T('बिल')})</td><td style="text-align:right"><b>${money(pl.sale)}</b></td></tr>
-    <tr><td>${T('माल की लागत (COGS)')}</td><td style="text-align:right">${money(pl.cogs)}</td></tr>
-    <tr><td><b>${T('ग्रॉस प्रॉफिट')}</b></td><td style="text-align:right"><b>${money(pl.grossProfit)}</b> (${pl.margin}%)</td></tr>
-    ${pl.expByCat.map(c => `<tr><td>${T('खर्च')} — ${T(c.category)}</td><td style="text-align:right">${money(c.total)}</td></tr>`).join('')}
-    <tr><td><b>${T('कुल खर्च')}</b></td><td style="text-align:right"><b>${money(pl.expenses)}</b></td></tr>
-    <tr><td style="font-size:14px"><b>${T('नेट प्रॉफिट')}</b></td>
-      <td style="text-align:right;font-size:14px"><b>${money(pl.netProfit)}</b></td></tr>
-  </tbody></table>
-  <h2>${T('आइटम-वार मुनाफा')}</h2>
-  <table><thead><tr><th>#</th><th>${T('आइटम')}</th><th>${T('मात्रा')}</th>
-    <th>${T('बिक्री')}</th><th>${T('मुनाफा')}</th></tr></thead>
-  <tbody>${items.slice(0, 20).map((r, i) => `<tr><td>${i + 1}</td><td>${r.name}</td>
-    <td>${n2(r.qty)}</td><td>${money(r.sale)}</td><td><b>${money(r.profit)}</b></td></tr>`).join('')}</tbody></table>`,
-    T('मासिक लाभ-हानि रिपोर्ट') + ' — ' + pl.ym);
+  <table style="width:100%;border-collapse:collapse;margin-bottom:14px">
+    <tbody>
+      <tr><td style="border:1px solid #cbd5e1;padding:6px;font-size:12px">${T('कुल बिक्री')} (${pl.bills} ${T('बिल')})</td><td style="border:1px solid #cbd5e1;padding:6px;text-align:right;font-size:12px;font-weight:700">${money(pl.sale)}</td></tr>
+      <tr><td style="border:1px solid #cbd5e1;padding:6px;font-size:12px">${T('माल की लागत (COGS)')}</td><td style="border:1px solid #cbd5e1;padding:6px;text-align:right;font-size:12px">${money(pl.cogs)}</td></tr>
+      <tr style="background:#f0fdf4"><td style="border:1px solid #cbd5e1;padding:6px;font-size:12px"><b>${T('ग्रॉस प्रॉफिट')}</b></td><td style="border:1px solid #cbd5e1;padding:6px;text-align:right;font-size:12px;font-weight:700;color:#16a34a">${money(pl.grossProfit)} (${pl.margin}%)</td></tr>
+      ${pl.expByCat.map(c => `<tr><td style="border:1px solid #cbd5e1;padding:6px;font-size:12px">${T('खर्च')} — ${T(c.category)}</td><td style="border:1px solid #cbd5e1;padding:6px;text-align:right;font-size:12px">${money(c.total)}</td></tr>`).join('')}
+      <tr><td style="border:1px solid #cbd5e1;padding:6px;font-size:12px"><b>${T('कुल खर्च')}</b></td><td style="border:1px solid #cbd5e1;padding:6px;text-align:right;font-size:12px">${money(pl.expenses)}</td></tr>
+      <tr style="background:#f8fafc"><td style="border:1px solid #cbd5e1;padding:8px;font-size:13px"><b>${T('नेट प्रॉफिट')}</b></td><td style="border:1px solid #cbd5e1;padding:8px;text-align:right;font-size:13px;font-weight:800;color:#16a34a">${money(pl.netProfit)}</td></tr>
+    </tbody>
+  </table>
+  <h2 style="font-size:14px;margin:14px 0 8px">${T('आइटम-वार मुनाफा')}</h2>
+  <table style="width:100%;border-collapse:collapse">
+    <thead>
+      <tr style="background:#f1f5f9">
+        <th style="border:1px solid #cbd5e1;padding:6px;font-size:11px;width:30px">#</th>
+        <th style="border:1px solid #cbd5e1;padding:6px;font-size:11px;text-align:left">${T('आइटम')}</th>
+        <th style="border:1px solid #cbd5e1;padding:6px;font-size:11px;text-align:right">${T('मात्रा')}</th>
+        <th style="border:1px solid #cbd5e1;padding:6px;font-size:11px;text-align:right">${T('बिक्री')}</th>
+        <th style="border:1px solid #cbd5e1;padding:6px;font-size:11px;text-align:right">${T('मुनाफा')}</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${items.slice(0, 20).map((r, i) => `
+        <tr>
+          <td style="border:1px solid #cbd5e1;padding:6px;text-align:center;font-size:11px">${i + 1}</td>
+          <td style="border:1px solid #cbd5e1;padding:6px;font-size:11px">${r.name}</td>
+          <td style="border:1px solid #cbd5e1;padding:6px;text-align:right;font-size:11px">${n2(r.qty)}</td>
+          <td style="border:1px solid #cbd5e1;padding:6px;text-align:right;font-size:11px">${money(r.sale)}</td>
+          <td style="border:1px solid #cbd5e1;padding:6px;text-align:right;font-size:11px;font-weight:700;color:#16a34a">${money(r.profit)}</td>
+        </tr>`).join('')}
+    </tbody>
+  </table>`,
+  T('मासिक लाभ-हानि रिपोर्ट') + ' — ' + pl.ym);
 }
