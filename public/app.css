@@ -92,6 +92,46 @@ tbody tr:hover{background:var(--panel2)}
 .t-w{background:rgba(245,158,11,.18);color:#f59e0b}
 .t-b{background:rgba(59,130,246,.18);color:#3b82f6}
 .t-m{background:rgba(148,163,184,.18);color:#94a3b8}
+.t-high{background:rgba(239,68,68,.18);color:#ef4444;border:1px solid rgba(239,68,68,.3)}
+.t-med{background:rgba(245,158,11,.18);color:#f59e0b;border:1px solid rgba(245,158,11,.3)}
+.t-low{background:rgba(34,197,94,.18);color:#22c55e;border:1px solid rgba(34,197,94,.3)}
+.t-clear{background:rgba(148,163,184,.18);color:#94a3b8;border:1px solid rgba(148,163,184,.3)}
+
+/* notification bell & badge */
+.notif-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.notif-badge{
+  position:absolute;top:-4px;right:-4px;background:var(--dan);color:#fff;
+  font-size:10px;font-weight:800;border-radius:10px;min-width:18px;height:18px;
+  display:flex;align-items:center;justify-content:center;padding:0 4px;line-height:1;
+  box-shadow:0 0 0 2px var(--panel);animation:pulse 2s infinite;
+}
+@keyframes pulse{
+  0%{box-shadow:0 0 0 0 rgba(239,68,68,.7)}
+  70%{box-shadow:0 0 0 6px rgba(239,68,68,0)}
+  100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}
+}
+
+/* weekly alert banner */
+.alert-banner{
+  background:linear-gradient(90deg, rgba(239,68,68,.15), rgba(245,158,11,.15));
+  border:1px solid rgba(245,158,11,.35);border-radius:var(--rad);padding:12px 16px;
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;
+  gap:12px;flex-wrap:wrap;
+}
+.alert-banner-content{display:flex;align-items:center;gap:12px}
+.alert-banner-icon{font-size:22px}
+
+/* whatsapp template suggestion selector */
+.tpl-list{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+@media(max-width:600px){.tpl-list{grid-template-columns:1fr}}
+.tpl-card{
+  background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+  padding:10px 12px;cursor:pointer;transition:all .15s ease;text-align:left;
+}
+.tpl-card:hover{border-color:var(--acc);background:rgba(59,130,246,.08)}
+.tpl-card.active{border-color:#22c55e;background:rgba(34,197,94,.12);box-shadow:0 0 0 1px #22c55e}
+.tpl-card .tpl-title{font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.tpl-card .tpl-desc{font-size:11px;color:var(--mut);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 
 .bar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
 .bar .sp{flex:1}

@@ -76,8 +76,9 @@ export default function Login() {
           <img src="/logo.png" alt="Salhotra Multi Store" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
 
-        <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, letterSpacing: '-0.02em' }}>Salhotra Multi Store</h2>
-        <p className="mut sml" style={{ marginBottom: 24, fontSize: 13 }}>अपना PIN डालें</p>
+        <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 2, letterSpacing: '-0.02em' }}>Udhar Book</h2>
+        <p className="mut sml" style={{ marginBottom: 4, fontSize: 13, fontWeight: 600 }}>Salhotra Multi Store</p>
+        <p className="mut sml" style={{ marginBottom: 20, fontSize: 12 }}>अपना PIN डालें</p>
 
         {/* PIN Indicators */}
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 24 }}>

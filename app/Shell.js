@@ -91,6 +91,170 @@ async function resizePhoto(file) {
   });
 }
 
+/* ---------- auto status calculator ---------- */
+export function getCustomerStatus(c, shop) {
+  const bal = Number(c?.balance || 0);
+  if (bal <= 0.5) return { key: 'clear', label: 'चुकता', icon: '⚪', tagCls: 't-clear', name: 'Clear' };
+  const days = Number(c?.days_overdue || 0);
+  const highAmt = Number(shop?.thresh_high_amt ?? 10000);
+  const highDays = Number(shop?.thresh_high_days ?? 45);
+  const medAmt = Number(shop?.thresh_med_amt ?? 2000);
+  const medDays = Number(shop?.thresh_med_days ?? 15);
+
+  if (bal >= highAmt || days >= highDays) {
+    return { key: 'high', label: 'उच्च जोखिम', icon: '🔴', tagCls: 't-high', name: 'High Risk' };
+  }
+  if (bal >= medAmt || days >= medDays) {
+    return { key: 'med', label: 'मध्यम जोखिम', icon: '🟠', tagCls: 't-med', name: 'Medium Risk' };
+  }
+  return { key: 'low', label: 'सामान्य', icon: '🟢', tagCls: 't-low', name: 'Low Risk' };
+}
+
+/* ---------- whatsapp modal with smart suggestions ---------- */
+export function WhatsAppModal({ cust, shop, onClose }) {
+  const bal = Number(cust?.balance || 0);
+  const shopName = (shop?.name && shop.name !== 'मेरी दुकान') ? shop.name : 'Salhotra Multi Store';
+  const shopMobile = shop?.mobile || '';
+  const days = Number(cust?.days_overdue || 0);
+  const st = getCustomerStatus(cust, shop);
+
+  const templates = [
+    {
+      id: 'gentle',
+      icon: '🟢',
+      title: LANG === 'en' ? 'Gentle / Polite' : 'सौम्य / विनम्र',
+      desc: LANG === 'en' ? 'Polite reminder for normal pending' : 'सामान्य उधारी के लिए शिष्ट स्मरण',
+      text: LANG === 'en'
+        ? `Hello ${cust.name},\nThis is a polite reminder from ${shopName}. Your total balance is ${money(bal)}.\nPlease clear it at your earliest convenience.\nThank you! 🙏`
+        : `नमस्ते ${cust.name} जी,\nआपकी दुकान ${shopName} से कुल बकाया ${money(bal)} है।\nसुविधानुसार भुगतान करने की कृपा करें।\nधन्यवाद 🙏`
+    },
+    {
+      id: 'standard',
+      icon: '🟠',
+      title: LANG === 'en' ? 'Standard / Due Date' : 'सामान्य / देय तारीख',
+      desc: LANG === 'en' ? 'Standard reminder with days overdue' : 'लंबित दिनों के साथ देय भुगतान स्मरण',
+      text: LANG === 'en'
+        ? `Hello ${cust.name},\nYour account balance of ${money(bal)} is pending for ${days > 0 ? days + ' days' : 'a while'} at ${shopName}.\nKindly settle the pending payment soon.\nThank you 🙏`
+        : `नमस्ते ${cust.name} जी,\nआपके खाते में ${money(bal)} का बकाया ${days > 0 ? days + ' दिनों से ' : ''}लंबित है।\nकृपया जल्द से जल्द भुगतान करें। UPI/Cash से भुगतान कर सकते हैं।\nधन्यवाद - ${shopName} 🙏`
+    },
+    {
+      id: 'urgent',
+      icon: '🔴',
+      title: LANG === 'en' ? 'Urgent / High Priority' : 'अत्यावश्यक / उच्च जोखिम',
+      desc: LANG === 'en' ? 'Firm notice for long overdue accounts' : 'लंबे समय से बाकी उधारी हेतु जरूरी सूचना',
+      text: LANG === 'en'
+        ? `⚠️ URGENT NOTICE:\nDear ${cust.name},\nYour outstanding amount of ${money(bal)} has been pending for over ${days} days at ${shopName}.\nPlease clear this balance immediately today to keep your account active.\nContact: ${shopMobile} - ${shopName}`
+        : `⚠️ अत्यावश्यक सूचना:\nश्री ${cust.name} जी,\nआपका ${money(bal)} का बकाया ${days > 0 ? days + ' दिनों से ' : ''}लंबित है।\nकृपया आज ही इसका भुगतान करें ताकि आपका खाता नियमित रहे।\nसंपर्क: ${shopMobile ? shopMobile + ' · ' : ''}${shopName} 🙏`
+    },
+    {
+      id: 'statement',
+      icon: '📄',
+      title: LANG === 'en' ? 'Account Statement' : 'खाता विवरण',
+      desc: LANG === 'en' ? 'Detailed summary with store contact' : 'कुल बकाया व विवरण सहित सारांश',
+      text: LANG === 'en'
+        ? `Hello ${cust.name},\nAccount summary from ${shopName}:\n• Outstanding Balance: ${money(bal)}\n• Pending Days: ${days || 0}\n• Date: ${fmtDate(today())}\nFor any questions or payment confirmation, please contact us.\nThank you! 🙏`
+        : `नमस्ते ${cust.name} जी,\n${shopName} से आपका खाता विवरण:\n• कुल बकाया राशि: ${money(bal)}\n• लंबित समय: ${days || 0} दिन\n• तारीख: ${fmtDate(today())}\nभुगतान या विवरण हेतु कृपया संपर्क करें।\nधन्यवाद 🙏`
+    }
+  ];
+
+  const defaultTpl = st.key === 'high' ? 'urgent' : st.key === 'med' ? 'standard' : 'gentle';
+  const [selectedId, setSelectedId] = useState(defaultTpl);
+  const [msg, setMsg] = useState(templates.find(t => t.id === defaultTpl)?.text || templates[0].text);
+
+  function selectTemplate(t) {
+    setSelectedId(t.id);
+    setMsg(t.text);
+  }
+
+  function copyText() {
+    navigator.clipboard.writeText(msg);
+    toast(LANG === 'en' ? 'Message copied to clipboard' : 'संदेश कॉपी हो गया');
+  }
+
+  function sendWhatsApp() {
+    if (!cust?.mobile) {
+      toast(LANG === 'en' ? 'Mobile number missing' : 'मोबाइल नंबर नहीं है', 'err');
+      return;
+    }
+    const cleanNum = String(cust.mobile).replace(/\D/g, '');
+    const url = 'https://wa.me/91' + cleanNum + '?text=' + encodeURIComponent(msg);
+    window.open(url, '_blank');
+    onClose?.();
+  }
+
+  return <div className="modal wide">
+    <div className="mh">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <b>💬 {T('व्हाट्सएप रिमाइंडर')}</b>
+        <span className={'tag ' + st.tagCls}>{st.icon} {T(st.label)}</span>
+      </div>
+      <button className="x" onClick={onClose}>×</button>
+    </div>
+    <div className="mb">
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '12px 14px', background: 'var(--panel2)', borderRadius: 10, marginBottom: 16,
+        border: '1px solid var(--line)', flexWrap: 'wrap', gap: 10
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Avatar c={cust} size={36} />
+          <div>
+            <b>{cust.name}</b>
+            <div className="mut sml">{cust.mobile || T('मोबाइल उपलब्ध नहीं')}</div>
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div className="sml mut">{T('कुल बकाया')}</div>
+          <b style={{ fontSize: 18, color: 'var(--dan)' }}>{money(bal)}</b>
+          {days > 0 && <span className="sml mut" style={{ marginLeft: 6 }}>({days} {T('दिन')})</span>}
+        </div>
+      </div>
+
+      <label style={{ marginBottom: 8 }}>{T('संदेश सुझाव (सुविधा अनुसार चुनें)')}</label>
+      <div className="tpl-list">
+        {templates.map(t => (
+          <div
+            key={t.id}
+            className={'tpl-card ' + (selectedId === t.id ? 'active' : '')}
+            onClick={() => selectTemplate(t)}
+          >
+            <div className="tpl-title">
+              <span>{t.icon} {t.title}</span>
+              {selectedId === t.id && <span style={{ color: 'var(--acc2)', fontSize: 12 }}>✓</span>}
+            </div>
+            <div className="tpl-desc">{t.desc}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="field" style={{ marginTop: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <label style={{ margin: 0 }}>{T('संदेश प्रीव्यू व संपादन (Live Preview & Edit)')}</label>
+          <button className="btn sm o" onClick={copyText} style={{ padding: '3px 9px', fontSize: 12 }}>
+            📋 {T('कॉपी करें')}
+          </button>
+        </div>
+        <textarea
+          rows={6}
+          value={msg}
+          onChange={e => { setMsg(e.target.value); setSelectedId('custom'); }}
+          style={{ width: '100%', resize: 'vertical', lineHeight: 1.5, fontSize: 14 }}
+        />
+      </div>
+    </div>
+    <div className="mf">
+      <button className="btn o" onClick={onClose}>{T('रद्द')}</button>
+      <button
+        className="btn g"
+        onClick={sendWhatsApp}
+        style={{ background: '#25D366', color: '#fff', display: 'flex', alignItems: 'center', gap: 6 }}
+      >
+        <span>📱</span> <b>{T('WhatsApp पर भेजें')}</b>
+      </button>
+    </div>
+  </div>;
+}
+
 /* =====================================================================
    SHELL
    ===================================================================== */
@@ -116,6 +280,13 @@ export default function Shell() {
   const refresh = useCallback(() => setTick(t => t + 1), []);
   useEffect(() => { setLangValue(lang); }, [lang]);
 
+  // Load shop settings and weekly summary for alerts
+  const { data: shopData } = useApi('/shop', [tick]);
+  const shop = shopData?.shop || null;
+  const { data: weeklyData } = useApi('/weekly', [tick]);
+  const highRiskCount = weeklyData?.highRisk?.length || 0;
+  const alertCount = highRiskCount + (weeklyData?.overdue?.length || 0);
+
   // theme + lang localStorage se
   useEffect(() => {
     const th = localStorage.getItem('theme');
@@ -134,7 +305,7 @@ export default function Shell() {
   }
   function go(v) { setView(v); setNav(false); }
 
-  const ctx = { refresh, setModal, go, busy, setBusy, lang };
+  const ctx = { refresh, setModal, go, busy, setBusy, lang, shop, weeklyData };
   const Screen = {
     dash: Dash, pos: POS, bills: Bills, customers: Customers,
     payments: Payments, expenses: Expenses, items: Items,
@@ -146,10 +317,10 @@ export default function Shell() {
       <div id="app">
         <aside id="side" className={nav ? 'open' : ''}>
           <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <img src="/logo.png" alt="Logo" style={{ width: 34, height: 34, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+            <img src="/logo.png" alt="Logo" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
             <div>
-              <b style={{ fontSize: 15, lineHeight: 1.2, display: 'block' }}>Salhotra Multi Store</b>
-              <span style={{ fontSize: 11, color: 'var(--mut)' }}>Customer Manager</span>
+              <b style={{ fontSize: 16, lineHeight: 1.2, display: 'block' }}>Udhar Book</b>
+              <span style={{ fontSize: 11, color: 'var(--mut)' }}>Salhotra Multi Store</span>
             </div>
           </div>
           <nav id="nav">
@@ -183,6 +354,14 @@ export default function Shell() {
               <h2 id="title">{T(TITLES[view])}</h2>
             </div>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <button
+                className="btn sm o notif-btn"
+                title={T('साप्ताहिक अलर्ट')}
+                onClick={() => setModal(<Weekly shop={shop} onClose={() => setModal(null)} setModal={setModal} />)}
+              >
+                🔔
+                {alertCount > 0 && <span className="notif-badge">{alertCount}</span>}
+              </button>
               <button className="btn sm o" onClick={refresh} title="Refresh">
                 {busy ? '⏳' : '↻'}
               </button>
@@ -229,14 +408,38 @@ function ErrBox({ e }) {
 /* =====================================================================
    DASHBOARD
    ===================================================================== */
-function Dash({ go, setModal }) {
+function Dash({ go, setModal, shop, weeklyData }) {
   const { data, err, loading } = useApi('/dashboard');
   if (loading) return <Loading />;
   if (err) return <ErrBox e={err} />;
   const { today: td, recv, od, topDebtors, oldest, last6, pl } = data;
   const mx = Math.max(...last6.map(m => Number(m.sale)), 1);
 
+  const highRiskCount = weeklyData?.highRisk?.length || 0;
+  const highRiskTotal = weeklyData?.highRisk?.reduce((s, c) => s + Number(c.balance), 0) || 0;
+
   return <>
+    {/* Weekly Alert Banner */}
+    {highRiskCount > 0 && (
+      <div className="alert-banner">
+        <div className="alert-banner-content">
+          <span className="alert-banner-icon">🔔</span>
+          <div>
+            <b style={{ color: 'var(--dan)' }}>{T('साप्ताहिक उधार समीक्षा')}</b>
+            <div className="sml mut" style={{ marginTop: 2 }}>
+              {highRiskCount} {T('ग्राहक उच्च जोखिम में हैं')} · {money(highRiskTotal)} {T('फँसी रकम')}
+            </div>
+          </div>
+        </div>
+        <button
+          className="btn sm w"
+          onClick={() => setModal(<Weekly shop={shop} onClose={() => setModal(null)} setModal={setModal} />)}
+        >
+          💬 {T('रिपोर्ट देखें / WhatsApp')}
+        </button>
+      </div>
+    )}
+
     <div className="grid g4" style={{ marginBottom: 16 }}>
       <Kpi cls="bl" l="आज की बिक्री" v={money(td.sale)} s={`${td.bills} ${T('बिल')}`} />
       <Kpi cls="ok" l="आज का मुनाफा" v={money(td.profit)} />
@@ -253,7 +456,7 @@ function Dash({ go, setModal }) {
         💵 {T('भुगतान लें')}
       </button>
       <span className="sp" />
-      <button className="btn w" onClick={() => setModal(<Weekly onClose={() => setModal(null)} />)}>
+      <button className="btn w" onClick={() => setModal(<Weekly shop={shop} onClose={() => setModal(null)} setModal={setModal} />)}>
         🔔 {T('साप्ताहिक रिपोर्ट')}
       </button>
     </div>
@@ -280,8 +483,8 @@ function Dash({ go, setModal }) {
     </div>
 
     <div className="grid g2">
-      <DebtorCard title="सबसे ज़्यादा उधार" rows={topDebtors} setModal={setModal} empty="कोई उधार नहीं ✓" />
-      <DebtorCard title="सबसे पुराने उधार" rows={oldest} setModal={setModal} empty="कोई पुराना उधार नहीं ✓" />
+      <DebtorCard title="सबसे ज़्यादा उधार" rows={topDebtors} setModal={setModal} shop={shop} empty="कोई उधार नहीं ✓" />
+      <DebtorCard title="सबसे पुराने उधार" rows={oldest} setModal={setModal} shop={shop} empty="कोई पुराना उधार नहीं ✓" />
     </div>
   </>;
 }
@@ -295,17 +498,32 @@ function Kpi({ cls, l, v, s }) {
 function Row({ l, v, color }) {
   return <div className="tot"><span className="mut">{T(l)}</span><b style={color ? { color } : {}}>{v}</b></div>;
 }
-function DebtorCard({ title, rows, setModal, empty }) {
+function DebtorCard({ title, rows, setModal, empty, shop }) {
   return <div className="card"><h3>{T(title)}</h3>
     {rows.length ? <div className="tw"><table>
-      <thead><tr><th>{T('ग्राहक')}</th><th className="r">{T('रकम')}</th><th className="r">{T('दिन')}</th></tr></thead>
-      <tbody>{rows.map(c => (
-        <tr key={c.id} style={{ cursor: 'pointer' }}
-          onClick={() => setModal(<Ledger id={c.id} onClose={() => setModal(null)} setModal={setModal} />)}>
-          <td><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Avatar c={c} size={26} />{c.name}</div></td>
-          <td className="num">{money(c.balance)}</td>
-          <td className="num"><span className={'tag ' + (c.days_overdue > 60 ? 't-r' : c.days_overdue > 30 ? 't-w' : 't-m')}>{c.days_overdue}</span></td>
-        </tr>))}</tbody>
+      <thead><tr><th>{T('ग्राहक')}</th><th className="r">{T('रकम')}</th><th className="r">{T('दिन')}</th><th>{T('स्थिति')}</th><th /></tr></thead>
+      <tbody>{rows.map(c => {
+        const st = getCustomerStatus(c, shop);
+        return <tr key={c.id}>
+          <td style={{ cursor: 'pointer' }} onClick={() => setModal(<Ledger id={c.id} shop={shop} onClose={() => setModal(null)} setModal={setModal} />)}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Avatar c={c} size={26} /><b>{c.name}</b></div>
+          </td>
+          <td className="num"><b style={{ color: 'var(--dan)' }}>{money(c.balance)}</b></td>
+          <td className="num">{c.days_overdue}</td>
+          <td><span className={'tag ' + st.tagCls}>{st.icon} {T(st.label)}</span></td>
+          <td className="c">
+            {c.mobile && (
+              <button
+                className="btn sm w"
+                title={T('व्हाट्सएप रिमाइंडर')}
+                onClick={() => setModal(<WhatsAppModal cust={c} shop={shop} onClose={() => setModal(null)} />)}
+              >
+                WA
+              </button>
+            )}
+          </td>
+        </tr>;
+      })}</tbody>
     </table></div> : <div className="empty">{T(empty)}</div>}
   </div>;
 }
@@ -486,7 +704,7 @@ function POS({ refresh, setModal }) {
 /* =====================================================================
    CUSTOMERS
    ===================================================================== */
-function Customers({ setModal, refresh }) {
+function Customers({ setModal, refresh, shop }) {
   const [q, setQ] = useState('');
   const [only, setOnly] = useState('');
   const [dq, setDq] = useState('');
@@ -496,23 +714,34 @@ function Customers({ setModal, refresh }) {
   if (loading) return <Loading />;
   if (err) return <ErrBox e={err} />;
   let rows = data;
-  if (only === 'due') rows = rows.filter(c => Number(c.balance) > 0.5);
-  if (only === 'over') rows = rows.filter(c => Number(c.balance) > 0.5 && c.days_overdue >= 30);
+  if (only === 'high') rows = rows.filter(c => getCustomerStatus(c, shop).key === 'high');
+  else if (only === 'med') rows = rows.filter(c => getCustomerStatus(c, shop).key === 'med');
+  else if (only === 'low') rows = rows.filter(c => getCustomerStatus(c, shop).key === 'low');
+  else if (only === 'due') rows = rows.filter(c => Number(c.balance) > 0.5);
+  else if (only === 'clear') rows = rows.filter(c => Number(c.balance) <= 0.5);
 
   const ag = {};
   data.filter(c => Number(c.balance) > 0.5).forEach(c => {
     ag[c.ageing_bucket] = (ag[c.ageing_bucket] || 0) + Number(c.balance);
   });
 
+  const highCnt = data.filter(c => getCustomerStatus(c, shop).key === 'high').length;
+  const medCnt = data.filter(c => getCustomerStatus(c, shop).key === 'med').length;
+  const lowCnt = data.filter(c => getCustomerStatus(c, shop).key === 'low').length;
+  const clearCnt = data.filter(c => getCustomerStatus(c, shop).key === 'clear').length;
+
   return <>
     <div className="bar">
       <div style={{ flex: 2 }}><label>{T('खोजें')}</label>
         <input value={q} onChange={e => setQ(e.target.value)} placeholder={T('नाम / मोबाइल')} /></div>
-      <div><label>{T('फ़िल्टर')}</label>
+      <div><label>{T('फ़िल्टर (ऑटो स्टेटस)')}</label>
         <select value={only} onChange={e => setOnly(e.target.value)}>
-          <option value="">{T('सभी ग्राहक')}</option>
+          <option value="">{T('सभी ग्राहक')} ({data.length})</option>
+          <option value="high">🔴 {T('उच्च जोखिम')} ({highCnt})</option>
+          <option value="med">🟠 {T('मध्यम जोखिम')} ({medCnt})</option>
+          <option value="low">🟢 {T('सामान्य जोखिम')} ({lowCnt})</option>
           <option value="due">{T('जिन पर उधार है')}</option>
-          <option value="over">30+ {T('दिन पुराना')}</option>
+          <option value="clear">⚪ {T('क्लियर')} ({clearCnt})</option>
         </select></div>
       <div style={{ flex: '0 0 auto', alignSelf: 'flex-end' }}>
         <button className="btn" onClick={() => setModal(
@@ -524,31 +753,41 @@ function Customers({ setModal, refresh }) {
     </div>
 
     <div className="grid g4" style={{ marginBottom: 14 }}>
-      {['0-15', '16-30', '31-60', '60+'].map((k, i) => (
-        <div key={k} className={'kpi ' + ['ok', 'bl', 'wr', 'dg'][i]}>
-          <div className="l">{k} {T('दिन')}</div><div className="v">{money(ag[k] || 0)}</div></div>
-      ))}
+      <div className="kpi dg" style={{ cursor: 'pointer' }} onClick={() => setOnly(only === 'high' ? '' : 'high')}>
+        <div className="l">🔴 {T('उच्च जोखिम')}</div>
+        <div className="v">{highCnt} <span style={{ fontSize: 13, fontWeight: 'normal', color: 'var(--mut)' }}>{T('ग्राहक')}</span></div>
+      </div>
+      <div className="kpi wr" style={{ cursor: 'pointer' }} onClick={() => setOnly(only === 'med' ? '' : 'med')}>
+        <div className="l">🟠 {T('मध्यम जोखिम')}</div>
+        <div className="v">{medCnt} <span style={{ fontSize: 13, fontWeight: 'normal', color: 'var(--mut)' }}>{T('ग्राहक')}</span></div>
+      </div>
+      <div className="kpi ok" style={{ cursor: 'pointer' }} onClick={() => setOnly(only === 'low' ? '' : 'low')}>
+        <div className="l">🟢 {T('सामान्य जोखिम')}</div>
+        <div className="v">{lowCnt} <span style={{ fontSize: 13, fontWeight: 'normal', color: 'var(--mut)' }}>{T('ग्राहक')}</span></div>
+      </div>
+      <div className="kpi bl" style={{ cursor: 'pointer' }} onClick={() => setOnly(only === 'clear' ? '' : 'clear')}>
+        <div className="l">⚪ {T('क्लियर')}</div>
+        <div className="v">{clearCnt} <span style={{ fontSize: 13, fontWeight: 'normal', color: 'var(--mut)' }}>{T('ग्राहक')}</span></div>
+      </div>
     </div>
 
     <div className="card"><div className="tw"><table>
       <thead><tr><th>{T('नाम')}</th><th>{T('मोबाइल')}</th><th className="r">{T('बाकी रकम')}</th>
-        <th className="r">{T('दिन')}</th><th>{T('स्थिति')}</th><th /></tr></thead>
+        <th className="r">{T('दिन')}</th><th>{T('ऑटो स्टेटस')}</th><th /></tr></thead>
       <tbody>{rows.length ? rows.map(c => {
         const bal = Number(c.balance);
+        const st = getCustomerStatus(c, shop);
         return <tr key={c.id}>
           <td><div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Avatar c={c} size={34} /><b>{c.name}</b></div></td>
           <td className="mut">{c.mobile}</td>
           <td className="num"><b style={{ color: bal > 0 ? 'var(--dan)' : 'var(--acc2)' }}>{money(bal)}</b></td>
           <td className="num">{bal > 0 ? c.days_overdue : '—'}</td>
-          <td>{bal <= 0.5 ? <span className="tag t-g">{T('क्लियर')}</span>
-            : c.days_overdue > 60 ? <span className="tag t-r">{T('बहुत पुराना')}</span>
-              : c.days_overdue > 30 ? <span className="tag t-w">{T('ओवरड्यू')}</span>
-                : <span className="tag t-b">{T('चालू')}</span>}</td>
+          <td><span className={'tag ' + st.tagCls}>{st.icon} {T(st.label)}</span></td>
           <td className="c" style={{ whiteSpace: 'nowrap' }}>
-            <button className="btn sm o" onClick={() => setModal(<Ledger id={c.id} onClose={() => setModal(null)} setModal={setModal} />)}>{T('खाता')}</button>{' '}
+            <button className="btn sm o" onClick={() => setModal(<Ledger id={c.id} shop={shop} onClose={() => setModal(null)} setModal={setModal} />)}>{T('खाता')}</button>{' '}
             <button className="btn sm g" onClick={() => setModal(<PaymentForm cust={c} onClose={() => setModal(null)} onDone={() => { setModal(null); refresh(); }} />)}>💵</button>{' '}
-            {c.mobile && bal > 0 && <button className="btn sm w" onClick={() => wa(c)}>WA</button>}{' '}
+            {c.mobile && bal > 0 && <button className="btn sm w" title={T('व्हाट्सएप रिमाइंडर')} onClick={() => setModal(<WhatsAppModal cust={c} shop={shop} onClose={() => setModal(null)} />)}>WA</button>}{' '}
             <button className="btn sm o" onClick={() => setModal(<CustomerForm cust={c} onClose={() => setModal(null)} onDone={() => { setModal(null); refresh(); }} />)}>✎</button>
           </td>
         </tr>;
@@ -557,10 +796,11 @@ function Customers({ setModal, refresh }) {
   </>;
 }
 
-function wa(c) {
+function wa(c, shop) {
+  const shopName = (shop?.name && shop.name !== 'मेरी दुकान') ? shop.name : 'Salhotra Multi Store';
   const msg = LANG === 'en'
     ? `Hello ${c.name},\nYour outstanding amount is ${money(c.balance)}.\nKindly clear it soon.\nThank you 🙏`
-    : `नमस्ते ${c.name} जी,\nआपका ${money(c.balance)} बकाया है।\nकृपया जल्दी जमा करें।\nधन्यवाद 🙏`;
+    : `नमस्ते ${c.name} जी,\nआपकी दुकान ${shopName} से कुल ${money(c.balance)} बकाया है।\nकृपया जल्दी जमा करें।\nधन्यवाद 🙏`;
   window.open('https://wa.me/91' + String(c.mobile).replace(/\D/g, '') + '?text=' + encodeURIComponent(msg), '_blank');
 }
 
@@ -672,14 +912,21 @@ function Camera({ onClose, onShot }) {
 }
 
 /* ---------- ledger ---------- */
-function Ledger({ id, onClose, setModal }) {
+function Ledger({ id, onClose, setModal, shop }) {
   const { data: c, err, loading } = useApi('/customers/' + id);
   if (loading) return <div className="modal"><div className="mb"><Loading /></div></div>;
   if (err) return <div className="modal"><div className="mb"><ErrBox e={err} /></div></div>;
   const bal = Number(c.balance);
+  const st = getCustomerStatus(c, shop);
 
   return <div className="modal wide">
-    <div className="mh"><b>{T('खाता')} — {c.name}</b><button className="x" onClick={onClose}>×</button></div>
+    <div className="mh">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <b>{T('खाता')} — {c.name}</b>
+        <span className={'tag ' + st.tagCls}>{st.icon} {T(st.label)}</span>
+      </div>
+      <button className="x" onClick={onClose}>×</button>
+    </div>
     <div className="mb">
       <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 16 }}>
         <Avatar c={c} size={64} />
@@ -730,7 +977,15 @@ function Ledger({ id, onClose, setModal }) {
       </>}
     </div>
     <div className="mf">
-      {c.mobile && bal > 0 && <button className="btn w" onClick={() => wa(c)}>WhatsApp</button>}
+      {c.mobile && bal > 0 && (
+        <button
+          className="btn w"
+          title={T('व्हाट्सएप रिमाइंडर')}
+          onClick={() => setModal(<WhatsAppModal cust={c} shop={shop} onClose={() => setModal(null)} />)}
+        >
+          💬 WhatsApp
+        </button>
+      )}
       <button className="btn o" onClick={() => printLedger(c)}>📄 {T('स्टेटमेंट PDF')}</button>
       <button className="btn g" onClick={() => setModal(<PaymentForm cust={c} onClose={onClose} onDone={onClose} />)}>
         💵 {T('भुगतान लें')}</button>
@@ -1092,26 +1347,71 @@ function Settings({ refresh }) {
 
   async function save() {
     setBusy(true);
-    try { await api('/shop', { method: 'PUT', body: JSON.stringify(shop) }); toast('सेटिंग्स सेव हुईं'); }
-    catch (e) { toast('सेव नहीं हुआ', 'err'); }
+    try {
+      await api('/shop', { method: 'PUT', body: JSON.stringify(shop) });
+      toast('सेटिंग्स सेव हुईं');
+      refresh?.();
+    } catch (e) {
+      toast('सेव नहीं हुआ: ' + e.message, 'err');
+    }
     setBusy(false);
   }
 
-  return <div className="grid g2">
-    <div className="card"><h3>{T('दुकान की जानकारी')}</h3>
-      <div className="field"><label>{T('दुकान का नाम')}</label>
-        <input value={shop.name || ''} onChange={e => set('name', e.target.value)} /></div>
-      <div className="field"><label>{T('पता')}</label>
-        <input value={shop.address || ''} onChange={e => set('address', e.target.value)} /></div>
-      <div className="field"><label>{T('मोबाइल')}</label>
-        <input value={shop.mobile || ''} onChange={e => set('mobile', e.target.value)} /></div>
-      <div className="row">
-        <div className="field"><label>{T('बिल प्रीफिक्स')}</label>
-          <input value={shop.bill_prefix || ''} onChange={e => set('bill_prefix', e.target.value)} /></div>
-        <div className="field"><label>{T('ओवरड्यू उधार (दिन)')}</label>
-          <input type="number" value={shop.overdue_days || 30} onChange={e => set('overdue_days', Number(e.target.value))} /></div>
+  return <>
+    <div className="grid g2" style={{ marginBottom: 16 }}>
+      <div className="card"><h3>{T('दुकान की जानकारी')}</h3>
+        <div className="field"><label>{T('दुकान का नाम')}</label>
+          <input value={shop.name || ''} onChange={e => set('name', e.target.value)} /></div>
+        <div className="field"><label>{T('पता')}</label>
+          <input value={shop.address || ''} onChange={e => set('address', e.target.value)} /></div>
+        <div className="field"><label>{T('मोबाइल')}</label>
+          <input value={shop.mobile || ''} onChange={e => set('mobile', e.target.value)} /></div>
+        <div className="row">
+          <div className="field"><label>{T('बिल प्रीफिक्स')}</label>
+            <input value={shop.bill_prefix || ''} onChange={e => set('bill_prefix', e.target.value)} /></div>
+          <div className="field"><label>{T('ओवरड्यू उधार (दिन)')}</label>
+            <input type="number" value={shop.overdue_days || 30} onChange={e => set('overdue_days', Number(e.target.value))} /></div>
+        </div>
+        <button className="btn g" onClick={save} disabled={busy}>{busy ? '…' : T('सेव करें')}</button>
       </div>
-      <button className="btn g" onClick={save} disabled={busy}>{T('सेव करें')}</button>
+
+      <div className="card"><h3>⚙️ {T('ऑटो स्टेटस सीमाएँ')}</h3>
+        <p className="sml mut" style={{ marginBottom: 12 }}>
+          {T('सिस्टम ग्राहकों के बाकी रुपये और दिनों के आधार पर 🟢 Low, 🟠 Medium, 🔴 High स्टेटस अपने आप तय करेगा।')}
+        </p>
+
+        <div style={{ background: 'var(--panel2)', border: '1px solid var(--line)', borderRadius: 8, padding: 12, marginBottom: 12 }}>
+          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: 'var(--warn)' }}>
+            🟠 {T('मध्यम जोखिम सीमा (Medium Risk)')}
+          </div>
+          <div className="row">
+            <div className="field"><label>{T('मध्यम जोखिम सीमा (₹)')}</label>
+              <input type="number" value={shop.thresh_med_amt ?? 2000} onChange={e => set('thresh_med_amt', Number(e.target.value))} /></div>
+            <div className="field"><label>{T('मध्यम लंबित दिन')}</label>
+              <input type="number" value={shop.thresh_med_days ?? 15} onChange={e => set('thresh_med_days', Number(e.target.value))} /></div>
+          </div>
+        </div>
+
+        <div style={{ background: 'var(--panel2)', border: '1px solid var(--line)', borderRadius: 8, padding: 12, marginBottom: 12 }}>
+          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: 'var(--dan)' }}>
+            🔴 {T('उच्च जोखिम सीमा (High Risk)')}
+          </div>
+          <div className="row">
+            <div className="field"><label>{T('उच्च जोखिम सीमा (₹)')}</label>
+              <input type="number" value={shop.thresh_high_amt ?? 10000} onChange={e => set('thresh_high_amt', Number(e.target.value))} /></div>
+            <div className="field"><label>{T('उच्च लंबित दिन')}</label>
+              <input type="number" value={shop.thresh_high_days ?? 45} onChange={e => set('thresh_high_days', Number(e.target.value))} /></div>
+          </div>
+        </div>
+
+        <div className="sml mut" style={{ marginBottom: 14, lineHeight: 1.4 }}>
+          🟢 <b>Low</b>: ₹ &lt; {money(shop.thresh_med_amt ?? 2000)} &amp; &lt; {shop.thresh_med_days ?? 15} दिन<br />
+          🟠 <b>Medium</b>: ₹ ≥ {money(shop.thresh_med_amt ?? 2000)} या ≥ {shop.thresh_med_days ?? 15} दिन<br />
+          🔴 <b>High</b>: ₹ ≥ {money(shop.thresh_high_amt ?? 10000)} या ≥ {shop.thresh_high_days ?? 45} दिन
+        </div>
+
+        <button className="btn g" onClick={save} disabled={busy}>{busy ? '…' : T('सेव करें')}</button>
+      </div>
     </div>
 
     <div className="card"><h3>{T('प्लान और सीमाएँ')}</h3>
@@ -1132,7 +1432,7 @@ function Settings({ refresh }) {
         {T('Free plan में रोज़ का auto-backup नहीं है। हफ़्ते में एक बार डेटा export करें।')}
       </p>}
     </div>
-  </div>;
+  </>;
 }
 
 function Bar({ pct }) {
@@ -1144,45 +1444,165 @@ function Bar({ pct }) {
   </div>;
 }
 
-function Weekly({ onClose }) {
+function Weekly({ onClose, setModal, shop }) {
   const { data, err, loading } = useApi('/weekly');
+  const [tab, setTab] = useState('high');
   if (loading) return <div className="modal"><div className="mb"><Loading /></div></div>;
   if (err) return <div className="modal"><div className="mb"><ErrBox e={err} /></div></div>;
-  const { overdue, big, newCredit } = data;
-  const tot = overdue.reduce((s, c) => s + Number(c.balance), 0);
+  const { highRisk = [], medRisk = [], overdue = [], big = [], newCredit = [] } = data;
+  const shopData = shop || data.shop;
+  const highTot = highRisk.reduce((s, c) => s + Number(c.balance), 0);
+  const medTot = medRisk.reduce((s, c) => s + Number(c.balance), 0);
+  const odTot = overdue.reduce((s, c) => s + Number(c.balance), 0);
 
   return <div className="modal wide">
-    <div className="mh"><b>🔔 {T('साप्ताहिक रिपोर्ट')} — {fmtDate(today())}</b>
-      <button className="x" onClick={onClose}>×</button></div>
+    <div className="mh">
+      <b>🔔 {T('साप्ताहिक उधार समीक्षा')} — {fmtDate(today())}</b>
+      <button className="x" onClick={onClose}>×</button>
+    </div>
     <div className="mb">
-      <div className="grid g4">
-        <Kpi cls="dg" l="पुराने उधार" v={overdue.length} />
-        <Kpi cls="dg" l="फँसी रकम" v={money(tot)} />
-        <Kpi cls="wr" l="लिमिट पार" v={big.length} />
-        <Kpi cls="bl" l="इस हफ़्ते नया उधार" v={money(newCredit.reduce((s, x) => s + Number(x.due), 0))} />
+      <div className="grid g4" style={{ marginBottom: 14 }}>
+        <div className="kpi dg" style={{ cursor: 'pointer' }} onClick={() => setTab('high')}>
+          <div className="l">🔴 {T('उच्च जोखिम')}</div>
+          <div className="v">{highRisk.length}</div>
+          <div className="s">{money(highTot)}</div>
+        </div>
+        <div className="kpi wr" style={{ cursor: 'pointer' }} onClick={() => setTab('med')}>
+          <div className="l">🟠 {T('मध्यम जोखिम')}</div>
+          <div className="v">{medRisk.length}</div>
+          <div className="s">{money(medTot)}</div>
+        </div>
+        <div className="kpi bl" style={{ cursor: 'pointer' }} onClick={() => setTab('overdue')}>
+          <div className="l">⏳ {T('पुराने उधार')}</div>
+          <div className="v">{overdue.length}</div>
+          <div className="s">{money(odTot)}</div>
+        </div>
+        <div className="kpi ok" style={{ cursor: 'pointer' }} onClick={() => setTab('new')}>
+          <div className="l">🧾 {T('इस हफ़्ते नया उधार')}</div>
+          <div className="v">{newCredit.length} {T('बिल')}</div>
+          <div className="s">{money(newCredit.reduce((s, x) => s + Number(x.due), 0))}</div>
+        </div>
       </div>
-      {overdue.length > 0 && <>
-        <h4 style={{ margin: '14px 0 8px' }}>📒 {T('पुराना उधार')} <span className="tag t-r">{overdue.length}</span></h4>
-        <div className="tw"><table>
-          <thead><tr><th>{T('ग्राहक')}</th><th>{T('मोबाइल')}</th><th className="r">{T('रकम')}</th>
-            <th className="r">{T('दिन')}</th><th /></tr></thead>
-          <tbody>{overdue.map(c => (
-            <tr key={c.id}><td>{c.name}</td><td className="mut">{c.mobile}</td>
-              <td className="num"><b>{money(c.balance)}</b></td><td className="num">{c.days_overdue}</td>
-              <td className="c">{c.mobile && <button className="btn sm w" onClick={() => wa(c)}>WA</button>}</td></tr>
-          ))}</tbody>
-        </table></div>
-      </>}
-      {big.length > 0 && <>
-        <h4 style={{ margin: '14px 0 8px' }}>⚠ {T('क्रेडिट लिमिट पार')} <span className="tag t-w">{big.length}</span></h4>
-        <div className="tw"><table>
-          <thead><tr><th>{T('ग्राहक')}</th><th className="r">{T('बकाया')}</th><th className="r">{T('लिमिट')}</th></tr></thead>
-          <tbody>{big.map(c => <tr key={c.id}><td>{c.name}</td>
-            <td className="num">{money(c.balance)}</td><td className="num mut">{money(c.credit_limit)}</td></tr>)}</tbody>
-        </table></div>
-      </>}
-      {!overdue.length && !big.length && !newCredit.length &&
-        <div className="empty">{T('इस हफ़्ते सब ठीक है ✓')}</div>}
+
+      <div className="pm" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: 14 }}>
+        <button className={tab === 'high' ? 'on' : ''} onClick={() => setTab('high')}>
+          🔴 {T('उच्च जोखिम')} ({highRisk.length})
+        </button>
+        <button className={tab === 'med' ? 'on' : ''} onClick={() => setTab('med')}>
+          🟠 {T('मध्यम')} ({medRisk.length})
+        </button>
+        <button className={tab === 'overdue' ? 'on' : ''} onClick={() => setTab('overdue')}>
+          ⏳ {T('पुराना')} ({overdue.length})
+        </button>
+        <button className={tab === 'big' ? 'on' : ''} onClick={() => setTab('big')}>
+          ⚠ {T('लिमिट पार')} ({big.length})
+        </button>
+      </div>
+
+      {tab === 'high' && (
+        highRisk.length ? (
+          <div className="tw"><table>
+            <thead><tr><th>{T('ग्राहक')}</th><th>{T('मोबाइल')}</th><th className="r">{T('रकम')}</th><th className="r">{T('दिन')}</th><th /></tr></thead>
+            <tbody>{highRisk.map(c => (
+              <tr key={c.id}>
+                <td><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Avatar c={c} size={28} /><b>{c.name}</b></div></td>
+                <td className="mut">{c.mobile || '—'}</td>
+                <td className="num"><b style={{ color: 'var(--dan)' }}>{money(c.balance)}</b></td>
+                <td className="num">{c.days_overdue}</td>
+                <td className="c">
+                  {c.mobile && (
+                    <button
+                      className="btn sm w"
+                      title={T('व्हाट्सएप रिमाइंडर')}
+                      onClick={() => setModal?.(<WhatsAppModal cust={c} shop={shopData} onClose={() => setModal(null)} />)}
+                    >
+                      💬 WA
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+        ) : <div className="empty">{T('कोई उच्च जोखिम ग्राहक नहीं ✓')}</div>
+      )}
+
+      {tab === 'med' && (
+        medRisk.length ? (
+          <div className="tw"><table>
+            <thead><tr><th>{T('ग्राहक')}</th><th>{T('मोबाइल')}</th><th className="r">{T('रकम')}</th><th className="r">{T('दिन')}</th><th /></tr></thead>
+            <tbody>{medRisk.map(c => (
+              <tr key={c.id}>
+                <td><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Avatar c={c} size={28} /><b>{c.name}</b></div></td>
+                <td className="mut">{c.mobile || '—'}</td>
+                <td className="num"><b style={{ color: 'var(--warn)' }}>{money(c.balance)}</b></td>
+                <td className="num">{c.days_overdue}</td>
+                <td className="c">
+                  {c.mobile && (
+                    <button
+                      className="btn sm w"
+                      title={T('व्हाट्सएप रिमाइंडर')}
+                      onClick={() => setModal?.(<WhatsAppModal cust={c} shop={shopData} onClose={() => setModal(null)} />)}
+                    >
+                      💬 WA
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+        ) : <div className="empty">{T('कोई मध्यम जोखिम ग्राहक नहीं ✓')}</div>
+      )}
+
+      {tab === 'overdue' && (
+        overdue.length ? (
+          <div className="tw"><table>
+            <thead><tr><th>{T('ग्राहक')}</th><th>{T('मोबाइल')}</th><th className="r">{T('रकम')}</th><th className="r">{T('दिन')}</th><th /></tr></thead>
+            <tbody>{overdue.map(c => (
+              <tr key={c.id}>
+                <td><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Avatar c={c} size={28} /><b>{c.name}</b></div></td>
+                <td className="mut">{c.mobile || '—'}</td>
+                <td className="num"><b>{money(c.balance)}</b></td>
+                <td className="num">{c.days_overdue}</td>
+                <td className="c">
+                  {c.mobile && (
+                    <button
+                      className="btn sm w"
+                      onClick={() => setModal?.(<WhatsAppModal cust={c} shop={shopData} onClose={() => setModal(null)} />)}
+                    >
+                      💬 WA
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+        ) : <div className="empty">{T('कोई पुराना उधार नहीं ✓')}</div>
+      )}
+
+      {tab === 'big' && (
+        big.length ? (
+          <div className="tw"><table>
+            <thead><tr><th>{T('ग्राहक')}</th><th className="r">{T('बकाया')}</th><th className="r">{T('लिमिट')}</th><th /></tr></thead>
+            <tbody>{big.map(c => (
+              <tr key={c.id}>
+                <td><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Avatar c={c} size={28} /><b>{c.name}</b></div></td>
+                <td className="num"><b style={{ color: 'var(--dan)' }}>{money(c.balance)}</b></td>
+                <td className="num mut">{money(c.credit_limit)}</td>
+                <td className="c">
+                  {c.mobile && (
+                    <button
+                      className="btn sm w"
+                      onClick={() => setModal?.(<WhatsAppModal cust={c} shop={shopData} onClose={() => setModal(null)} />)}
+                    >
+                      💬 WA
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+        ) : <div className="empty">{T('कोई लिमिट पार ग्राहक नहीं ✓')}</div>
+      )}
     </div>
     <div className="mf"><button className="btn g" onClick={onClose}>{T('ठीक है, देख लिया')}</button></div>
   </div>;
@@ -1213,7 +1633,7 @@ async function doPrint(bodyHtml, title) {
         <div style="font-size:11px;color:#64748b;margin-top:4px">${T('तारीख')}: ${fmtDate(today())}</div>
       </div>
     </div>`;
-  const foot = `<div class="pf" style="margin-top:24px;border-top:1px solid #e2e8f0;padding-top:8px;font-size:11px;text-align:center;color:#64748b">${T('जनरेट')}: ${fmtDate(today())} · Salhotra Multi Store — Customer Manager</div>`;
+  const foot = `<div class="pf" style="margin-top:24px;border-top:1px solid #e2e8f0;padding-top:8px;font-size:11px;text-align:center;color:#64748b">${T('जनरेट')}: ${fmtDate(today())} · Udhar Book — Salhotra Multi Store</div>`;
   const el = document.getElementById('printarea');
   if (el) {
     el.innerHTML = head + bodyHtml + foot;

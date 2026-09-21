@@ -1,6 +1,6 @@
 export const metadata = {
-  title: 'Salhotra Multi Store — Customer Manager',
-  description: 'ग्राहक उधार खाता — Salhotra Multi Store PWA',
+  title: 'Udhar Book — Salhotra Multi Store',
+  description: 'ग्राहक उधार खाता (Udhar Book) — Salhotra Multi Store',
   manifest: '/manifest.json'
 };
 export const viewport = {

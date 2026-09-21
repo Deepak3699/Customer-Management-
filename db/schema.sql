@@ -10,17 +10,27 @@
 
 -- ---------- 1. दुकान ----------
 create table if not exists shop (
-  id            serial primary key,
-  name          text not null default 'मेरी दुकान',
-  address       text,
-  mobile        text,
-  bill_prefix   text default 'INV',
-  next_bill     int  default 1,
-  overdue_days  int  default 30,
-  lang          text default 'hi',
-  pin_hash      text,                     -- bcrypt; env से भी आ सकता है
-  created_at    timestamptz default now()
+  id                serial primary key,
+  name              text not null default 'मेरी दुकान',
+  address           text,
+  mobile            text,
+  bill_prefix       text default 'INV',
+  next_bill         int  default 1,
+  overdue_days      int  default 30,
+  thresh_med_amt    numeric(12,2) default 2000,
+  thresh_med_days   int  default 15,
+  thresh_high_amt   numeric(12,2) default 10000,
+  thresh_high_days  int  default 45,
+  lang              text default 'hi',
+  pin_hash          text,                     -- bcrypt; env से भी आ सकता है
+  created_at        timestamptz default now()
 );
+
+-- migration if shop already exists
+alter table shop add column if not exists thresh_med_amt numeric(12,2) default 2000;
+alter table shop add column if not exists thresh_med_days int default 15;
+alter table shop add column if not exists thresh_high_amt numeric(12,2) default 10000;
+alter table shop add column if not exists thresh_high_days int default 45;
 
 -- ---------- 2. ग्राहक ----------
 create table if not exists customer (
