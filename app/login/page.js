@@ -11,7 +11,7 @@ export default function Login() {
 
   async function submit(value) {
     const p = value ?? pin;
-    if (p.length < 4) { setErr('कम से कम 4 अंक'); return; }
+    if (p.length < 4) { setErr('At least 4 digits'); return; }
     setBusy(true); setErr('');
     try {
       const r = await fetch('/api/auth/login', {
@@ -20,11 +20,11 @@ export default function Login() {
       });
       const d = await r.json();
       if (d.ok) { location.href = '/'; return; }
-      if (d.locked) setErr(`बहुत ज़्यादा गलत कोशिशें — ${d.waitMin} मिनट बाद कोशिश करें`);
-      else if (d.error === 'PIN_NOT_SET') setErr('PIN सेट नहीं है — npm run pin चलाएँ');
-      else setErr(`गलत PIN${d.left != null ? ` — ${d.left} कोशिश बाकी` : ''}`);
+      if (d.locked) setErr(`Too many failed attempts — try after ${d.waitMin} minutes`);
+      else if (d.error === 'PIN_NOT_SET') setErr('PIN not set — run npm run pin');
+      else setErr(`Incorrect PIN${d.left != null ? ` — ${d.left} attempts left` : ''}`);
       setPin('');
-    } catch { setErr('कनेक्शन नहीं हुआ'); }
+    } catch { setErr('Connection failed'); }
     setBusy(false);
   }
 
@@ -78,7 +78,7 @@ export default function Login() {
 
         <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 2, letterSpacing: '-0.02em' }}>Udhar Book</h2>
         <p className="mut sml" style={{ marginBottom: 4, fontSize: 13, fontWeight: 600 }}>Salhotra Multi Store</p>
-        <p className="mut sml" style={{ marginBottom: 20, fontSize: 12 }}>अपना PIN डालें</p>
+        <p className="mut sml" style={{ marginBottom: 20, fontSize: 12 }}>Enter your PIN</p>
 
         {/* PIN Indicators */}
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 24 }}>
@@ -146,7 +146,7 @@ export default function Login() {
         </div>
 
         <p className="mut sml" style={{ marginTop: 22, fontSize: 12 }}>
-          {busy ? 'जाँच रहे हैं…' : '5 गलत कोशिशों पर 15 मिनट का लॉक'}
+          {busy ? 'Checking…' : '15 min lockout after 5 failed attempts'}
         </p>
       </div>
     </div>

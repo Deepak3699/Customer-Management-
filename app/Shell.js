@@ -94,7 +94,7 @@ async function resizePhoto(file) {
 /* ---------- auto status calculator ---------- */
 export function getCustomerStatus(c, shop) {
   const bal = Number(c?.balance || 0);
-  if (bal <= 0.5) return { key: 'clear', label: 'चुकता', icon: '⚪', tagCls: 't-clear', name: 'Clear' };
+  if (bal <= 0.5) return { key: 'clear', label: 'Clear', icon: '⚪', tagCls: 't-clear', name: 'Clear' };
   const days = Number(c?.days_overdue || 0);
   const highAmt = Number(shop?.thresh_high_amt ?? 10000);
   const highDays = Number(shop?.thresh_high_days ?? 45);
@@ -102,12 +102,12 @@ export function getCustomerStatus(c, shop) {
   const medDays = Number(shop?.thresh_med_days ?? 15);
 
   if (bal >= highAmt || days >= highDays) {
-    return { key: 'high', label: 'उच्च जोखिम', icon: '🔴', tagCls: 't-high', name: 'High Risk' };
+    return { key: 'high', label: 'High Risk', icon: '🔴', tagCls: 't-high', name: 'High Risk' };
   }
   if (bal >= medAmt || days >= medDays) {
-    return { key: 'med', label: 'मध्यम जोखिम', icon: '🟠', tagCls: 't-med', name: 'Medium Risk' };
+    return { key: 'med', label: 'Medium Risk', icon: '🟠', tagCls: 't-med', name: 'Medium Risk' };
   }
-  return { key: 'low', label: 'सामान्य', icon: '🟢', tagCls: 't-low', name: 'Low Risk' };
+  return { key: 'low', label: 'Low Risk', icon: '🟢', tagCls: 't-low', name: 'Low Risk' };
 }
 
 /* ---------- whatsapp modal with smart suggestions ---------- */
@@ -122,38 +122,30 @@ export function WhatsAppModal({ cust, shop, onClose }) {
     {
       id: 'gentle',
       icon: '🟢',
-      title: LANG === 'en' ? 'Gentle / Polite' : 'सौम्य / विनम्र',
-      desc: LANG === 'en' ? 'Polite reminder for normal pending' : 'सामान्य उधारी के लिए शिष्ट स्मरण',
-      text: LANG === 'en'
-        ? `Hello ${cust.name},\nThis is a polite reminder from ${shopName}. Your total balance is ${money(bal)}.\nPlease clear it at your earliest convenience.\nThank you! 🙏`
-        : `नमस्ते ${cust.name} जी,\nआपकी दुकान ${shopName} से कुल बकाया ${money(bal)} है।\nसुविधानुसार भुगतान करने की कृपा करें।\nधन्यवाद 🙏`
+      title: 'Gentle / Polite',
+      desc: 'Polite reminder for normal pending',
+      text: `Hello ${cust.name},\nThis is a polite reminder from ${shopName}. Your total balance is ${money(bal)}.\nPlease clear it at your earliest convenience.\nThank you! 🙏`
     },
     {
       id: 'standard',
       icon: '🟠',
-      title: LANG === 'en' ? 'Standard / Due Date' : 'सामान्य / देय तारीख',
-      desc: LANG === 'en' ? 'Standard reminder with days overdue' : 'लंबित दिनों के साथ देय भुगतान स्मरण',
-      text: LANG === 'en'
-        ? `Hello ${cust.name},\nYour account balance of ${money(bal)} is pending for ${days > 0 ? days + ' days' : 'a while'} at ${shopName}.\nKindly settle the pending payment soon.\nThank you 🙏`
-        : `नमस्ते ${cust.name} जी,\nआपके खाते में ${money(bal)} का बकाया ${days > 0 ? days + ' दिनों से ' : ''}लंबित है।\nकृपया जल्द से जल्द भुगतान करें। UPI/Cash से भुगतान कर सकते हैं।\nधन्यवाद - ${shopName} 🙏`
+      title: 'Standard / Due Date',
+      desc: 'Standard reminder with days overdue',
+      text: `Hello ${cust.name},\nYour account balance of ${money(bal)} is pending for ${days > 0 ? days + ' days' : 'a while'} at ${shopName}.\nKindly settle the pending payment soon.\nThank you 🙏`
     },
     {
       id: 'urgent',
       icon: '🔴',
-      title: LANG === 'en' ? 'Urgent / High Priority' : 'अत्यावश्यक / उच्च जोखिम',
-      desc: LANG === 'en' ? 'Firm notice for long overdue accounts' : 'लंबे समय से बाकी उधारी हेतु जरूरी सूचना',
-      text: LANG === 'en'
-        ? `⚠️ URGENT NOTICE:\nDear ${cust.name},\nYour outstanding amount of ${money(bal)} has been pending for over ${days} days at ${shopName}.\nPlease clear this balance immediately today to keep your account active.\nContact: ${shopMobile} - ${shopName}`
-        : `⚠️ अत्यावश्यक सूचना:\nश्री ${cust.name} जी,\nआपका ${money(bal)} का बकाया ${days > 0 ? days + ' दिनों से ' : ''}लंबित है।\nकृपया आज ही इसका भुगतान करें ताकि आपका खाता नियमित रहे।\nसंपर्क: ${shopMobile ? shopMobile + ' · ' : ''}${shopName} 🙏`
+      title: 'Urgent / High Priority',
+      desc: 'Firm notice for long overdue accounts',
+      text: `⚠️ URGENT NOTICE:\nDear ${cust.name},\nYour outstanding amount of ${money(bal)} has been pending for over ${days} days at ${shopName}.\nPlease clear this balance immediately today to keep your account active.\nContact: ${shopMobile} - ${shopName}`
     },
     {
       id: 'statement',
       icon: '📄',
-      title: LANG === 'en' ? 'Account Statement' : 'खाता विवरण',
-      desc: LANG === 'en' ? 'Detailed summary with store contact' : 'कुल बकाया व विवरण सहित सारांश',
-      text: LANG === 'en'
-        ? `Hello ${cust.name},\nAccount summary from ${shopName}:\n• Outstanding Balance: ${money(bal)}\n• Pending Days: ${days || 0}\n• Date: ${fmtDate(today())}\nFor any questions or payment confirmation, please contact us.\nThank you! 🙏`
-        : `नमस्ते ${cust.name} जी,\n${shopName} से आपका खाता विवरण:\n• कुल बकाया राशि: ${money(bal)}\n• लंबित समय: ${days || 0} दिन\n• तारीख: ${fmtDate(today())}\nभुगतान या विवरण हेतु कृपया संपर्क करें।\nधन्यवाद 🙏`
+      title: 'Account Statement',
+      desc: 'Detailed summary with store contact',
+      text: `Hello ${cust.name},\nAccount summary from ${shopName}:\n• Outstanding Balance: ${money(bal)}\n• Pending Days: ${days || 0}\n• Date: ${fmtDate(today())}\nFor any questions or payment confirmation, please contact us.\nThank you! 🙏`
     }
   ];
 
@@ -168,12 +160,12 @@ export function WhatsAppModal({ cust, shop, onClose }) {
 
   function copyText() {
     navigator.clipboard.writeText(msg);
-    toast(LANG === 'en' ? 'Message copied to clipboard' : 'संदेश कॉपी हो गया');
+    toast('Message copied to clipboard');
   }
 
   function sendWhatsApp() {
     if (!cust?.mobile) {
-      toast(LANG === 'en' ? 'Mobile number missing' : 'मोबाइल नंबर नहीं है', 'err');
+      toast('Mobile number missing', 'err');
       return;
     }
     const cleanNum = String(cust.mobile).replace(/\D/g, '');
@@ -271,14 +263,12 @@ const TITLES = {
 
 export default function Shell() {
   const [view, setView] = useState('dash');
-  const [lang, setLang] = useState('hi');
   const [modal, setModal] = useState(null);
   const [nav, setNav] = useState(false);
   const [tick, setTick] = useState(0);
   const [busy, setBusy] = useState(false);
 
   const refresh = useCallback(() => setTick(t => t + 1), []);
-  useEffect(() => { setLangValue(lang); }, [lang]);
 
   // Load shop settings and weekly summary for alerts
   const { data: shopData } = useApi('/shop', [tick]);
@@ -287,25 +277,19 @@ export default function Shell() {
   const highRiskCount = weeklyData?.highRisk?.length || 0;
   const alertCount = highRiskCount + (weeklyData?.overdue?.length || 0);
 
-  // theme + lang localStorage se
+  // theme localStorage se
   useEffect(() => {
     const th = localStorage.getItem('theme');
     if (th === 'light') document.body.classList.add('light');
-    const lg = localStorage.getItem('lang');
-    if (lg) { setLang(lg); setLangValue(lg); }
   }, []);
 
-  function switchLang(l) {
-    setLang(l); setLangValue(l); localStorage.setItem('lang', l);
-    toast(l === 'en' ? 'Language changed to English' : 'भाषा हिंदी हो गई');
-  }
   function toggleTheme() {
     document.body.classList.toggle('light');
     localStorage.setItem('theme', document.body.classList.contains('light') ? 'light' : 'dark');
   }
   function go(v) { setView(v); setNav(false); }
 
-  const ctx = { refresh, setModal, go, busy, setBusy, lang, shop, weeklyData };
+  const ctx = { refresh, setModal, go, busy, setBusy, lang: 'en', shop, weeklyData };
   const Screen = {
     dash: Dash, pos: POS, bills: Bills, customers: Customers,
     payments: Payments, expenses: Expenses, items: Items,
@@ -336,12 +320,10 @@ export default function Shell() {
             ))}
           </nav>
           <div className="foot">
-            <button className="btn sm o" style={{ flex: 1 }}
-              onClick={() => switchLang(lang === 'hi' ? 'en' : 'hi')}>A/अ</button>
-            <button className="btn sm o" onClick={toggleTheme}>🌓</button>
+            <button className="btn sm o" onClick={toggleTheme} style={{ flex: 1 }} title="Toggle Theme">🌓</button>
             <button className="btn sm o" onClick={async () => {
               await fetch('/api/auth/logout', { method: 'POST' }); location.href = '/login';
-            }}>⏻</button>
+            }} title="Logout">⏻</button>
           </div>
         </aside>
 

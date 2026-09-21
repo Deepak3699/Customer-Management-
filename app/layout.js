@@ -1,6 +1,6 @@
 export const metadata = {
   title: 'Udhar Book — Salhotra Multi Store',
-  description: 'ग्राहक उधार खाता (Udhar Book) — Salhotra Multi Store',
+  description: 'Customer Credit Ledger (Udhar Book) — Salhotra Multi Store',
   manifest: '/manifest.json'
 };
 export const viewport = {
@@ -12,7 +12,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="hi">
+    <html lang="en">
       <head>
         <link rel="stylesheet" href="/app.css" />
         <link rel="icon" href="/favicon.ico" />
