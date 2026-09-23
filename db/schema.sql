@@ -1,17 +1,11 @@
 -- =====================================================================
 -- Shop Manager Online — Neon Postgres Schema
--- चलाने का तरीका: Neon Console → SQL Editor → paste → Run
---                या: psql "$DATABASE_URL" -f db/schema.sql
---
--- नोट: Supabase वाली RLS यहाँ नहीं है क्योंकि Neon में auth.uid() नहीं होता।
--- सुरक्षा API layer पर है — हर query में shop_id server से आता है,
--- browser से कभी नहीं। (देखें db/queries.js)
 -- =====================================================================
 
--- ---------- 1. दुकान ----------
+-- ---------- 1. Shop ----------
 create table if not exists shop (
   id                serial primary key,
-  name              text not null default 'मेरी दुकान',
+  name              text not null default 'Salhotra Multi Store',
   address           text,
   mobile            text,
   bill_prefix       text default 'INV',
@@ -22,7 +16,7 @@ create table if not exists shop (
   thresh_high_amt   numeric(12,2) default 10000,
   thresh_high_days  int  default 45,
   lang              text default 'en',
-  pin_hash          text,                     -- bcrypt; env से भी आ सकता है
+  pin_hash          text,                     -- bcrypt; can come from env
   created_at        timestamptz default now()
 );
 
@@ -32,7 +26,7 @@ alter table shop add column if not exists thresh_med_days int default 15;
 alter table shop add column if not exists thresh_high_amt numeric(12,2) default 10000;
 alter table shop add column if not exists thresh_high_days int default 45;
 
--- ---------- 2. ग्राहक ----------
+-- ---------- 2. Customer ----------
 create table if not exists customer (
   id            serial primary key,
   shop_id       int not null references shop on delete cascade,
@@ -42,7 +36,7 @@ create table if not exists customer (
   opening       numeric(12,2) default 0,
   credit_limit  numeric(12,2) default 0,
   note          text,
-  photo_key     text,                     -- R2 का object key; फोटो DB में नहीं
+  photo_key     text,                     -- R2 object key; photos stored in R2
   created_at    timestamptz default now(),
   updated_at    timestamptz default now()
 );
@@ -50,7 +44,7 @@ create index if not exists idx_cust_shop      on customer(shop_id);
 create index if not exists idx_cust_shop_name on customer(shop_id, lower(name));
 create index if not exists idx_cust_shop_mob  on customer(shop_id, mobile);
 
--- ---------- 3. रेट लिस्ट (कोई stock नहीं) ----------
+-- ---------- 3. Rate List (Item) ----------
 create table if not exists item (
   id         serial primary key,
   shop_id    int not null references shop on delete cascade,
@@ -65,13 +59,13 @@ create table if not exists item (
   active     boolean default true,
   last_sold  date,
   created_at timestamptz default now(),
-  constraint uq_item_code unique (shop_id, code)     -- duplicate code DB पर ही रुकेगा
+  constraint uq_item_code unique (shop_id, code)     -- Enforces unique item code
 );
 create unique index if not exists uq_item_barcode
   on item(shop_id, barcode) where barcode is not null and barcode <> '';
 create index if not exists idx_item_shop_name on item(shop_id, lower(name));
 
--- ---------- 4. बिल ----------
+-- ---------- 4. Bills / Sales ----------
 create table if not exists sale (
   id             serial primary key,
   shop_id        int not null references shop on delete cascade,
@@ -83,7 +77,7 @@ create table if not exists sale (
   discount       numeric(12,2) default 0,
   total          numeric(12,2) not null,
   paid           numeric(12,2) default 0,
-  due            numeric(12,2) default 0,   -- IMMUTABLE — कभी update मत करना
+  due            numeric(12,2) default 0,   -- IMMUTABLE — never update
   pay_mode       text,
   profit         numeric(12,2) default 0,
   is_void        boolean default false,
@@ -103,13 +97,13 @@ create table if not exists sale_item (
   unit       text,
   qty        numeric(12,3) not null,
   rate       numeric(12,2) not null,
-  cost_rate  numeric(12,2) default 0,      -- freeze — पुराना profit न बदले
+  cost_rate  numeric(12,2) default 0,      -- frozen cost at time of sale
   discount   numeric(12,2) default 0,
   amount     numeric(12,2) not null
 );
 create index if not exists idx_saleitem_sale on sale_item(sale_id);
 
--- ---------- 5. भुगतान ----------
+-- ---------- 5. Payments ----------
 create table if not exists payment (
   id          serial primary key,
   shop_id     int not null references shop on delete cascade,
@@ -123,7 +117,7 @@ create table if not exists payment (
 create index if not exists idx_pay_cust on payment(customer_id, pay_date);
 create index if not exists idx_pay_shop on payment(shop_id, pay_date desc);
 
--- ---------- 6. खर्च ----------
+-- ---------- 6. Expenses ----------
 create table if not exists expense (
   id        serial primary key,
   shop_id   int not null references shop on delete cascade,
@@ -136,7 +130,7 @@ create index if not exists idx_exp_shop_date on expense(shop_id, exp_date desc);
 
 
 -- =====================================================================
--- VIEWS — भारी हिसाब DB करेगा
+-- VIEWS
 -- =====================================================================
 
 create or replace view customer_balance as
@@ -164,7 +158,7 @@ select
 from customer_balance cb
 where cb.balance > 0.5;
 
--- सारे ग्राहक (उधार हो या न हो) — list screen के लिए
+-- All customers (with or without credit balance)
 create or replace view debtors_all as
 select
   cb.*,
@@ -193,7 +187,7 @@ group by s.shop_id, to_char(s.bill_date, 'YYYY-MM');
 
 
 -- =====================================================================
--- FIFO — किस बिल पर कितना बाकी (bill.due कभी नहीं बदलता)
+-- FIFO & Bill Number Functions
 -- =====================================================================
 create or replace function bill_outstanding(p_customer int)
 returns table (sale_id int, bill_no text, bill_date date,
@@ -207,7 +201,7 @@ language sql stable as $$
   ),
   ordered as (
     select s.id, s.bill_no, s.bill_date, s.due,
-           sum(s.due) over (order by s.bill_date, s.id
+            sum(s.due) over (order by s.bill_date, s.id
                             rows between unbounded preceding and current row) as running
     from sale s
     where s.customer_id = p_customer and s.is_void = false and s.due > 0
@@ -218,7 +212,7 @@ language sql stable as $$
   order by o.bill_date, o.id;
 $$;
 
--- अगला बिल नंबर — race-safe (दो device एक साथ बिल बनाएँ तो भी डुप्लिकेट नहीं)
+-- Next bill number — race-safe generator
 create or replace function next_bill_no(p_shop int)
 returns text language plpgsql as $$
 declare v_no int; v_pre text;
@@ -229,8 +223,8 @@ begin
   return v_pre || '-' || lpad(v_no::text, 4, '0');
 end $$;
 
--- पहली दुकान (अगर कोई नहीं है)
+-- Default first shop entry if none exists
 insert into shop (id, name)
-select 1, 'मेरी दुकान'
+select 1, 'Salhotra Multi Store'
 where not exists (select 1 from shop);
 select setval('shop_id_seq', greatest((select max(id) from shop), 1));

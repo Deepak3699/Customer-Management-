@@ -177,8 +177,8 @@ export function WhatsAppModal({ cust, shop, onClose }) {
   return <div className="modal wide">
     <div className="mh">
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <b>💬 {T('व्हाट्सएप रिमाइंडर')}</b>
-        <span className={'tag ' + st.tagCls}>{st.icon} {T(st.label)}</span>
+        <b>💬 WhatsApp Reminder</b>
+        <span className={'tag ' + st.tagCls}>{st.icon} {st.label}</span>
       </div>
       <button className="x" onClick={onClose}>×</button>
     </div>
@@ -192,17 +192,17 @@ export function WhatsAppModal({ cust, shop, onClose }) {
           <Avatar c={cust} size={36} />
           <div>
             <b>{cust.name}</b>
-            <div className="mut sml">{cust.mobile || T('मोबाइल उपलब्ध नहीं')}</div>
+            <div className="mut sml">{cust.mobile || 'Mobile not available'}</div>
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div className="sml mut">{T('कुल बकाया')}</div>
+          <div className="sml mut">Total Balance</div>
           <b style={{ fontSize: 18, color: 'var(--dan)' }}>{money(bal)}</b>
-          {days > 0 && <span className="sml mut" style={{ marginLeft: 6 }}>({days} {T('दिन')})</span>}
+          {days > 0 && <span className="sml mut" style={{ marginLeft: 6 }}>({days} days)</span>}
         </div>
       </div>
 
-      <label style={{ marginBottom: 8 }}>{T('संदेश सुझाव (सुविधा अनुसार चुनें)')}</label>
+      <label style={{ marginBottom: 8 }}>Message Suggestions (Choose as needed)</label>
       <div className="tpl-list">
         {templates.map(t => (
           <div
@@ -221,9 +221,9 @@ export function WhatsAppModal({ cust, shop, onClose }) {
 
       <div className="field" style={{ marginTop: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-          <label style={{ margin: 0 }}>{T('संदेश प्रीव्यू व संपादन (Live Preview & Edit)')}</label>
+          <label style={{ margin: 0 }}>Live Preview & Edit Message</label>
           <button className="btn sm o" onClick={copyText} style={{ padding: '3px 9px', fontSize: 12 }}>
-            📋 {T('कॉपी करें')}
+            📋 Copy
           </button>
         </div>
         <textarea
@@ -235,13 +235,13 @@ export function WhatsAppModal({ cust, shop, onClose }) {
       </div>
     </div>
     <div className="mf">
-      <button className="btn o" onClick={onClose}>{T('रद्द')}</button>
+      <button className="btn o" onClick={onClose}>Cancel</button>
       <button
         className="btn g"
         onClick={sendWhatsApp}
         style={{ background: '#25D366', color: '#fff', display: 'flex', alignItems: 'center', gap: 6 }}
       >
-        <span>📱</span> <b>{T('WhatsApp पर भेजें')}</b>
+        <span>📱</span> <b>Send via WhatsApp</b>
       </button>
     </div>
   </div>;
@@ -251,14 +251,14 @@ export function WhatsAppModal({ cust, shop, onClose }) {
    SHELL
    ===================================================================== */
 const NAV = [
-  ['मुख्य', [['dash', '⌂', 'डैशबोर्ड'], ['pos', '🧾', 'नया बिल'], ['bills', '📄', 'बिल लिस्ट']]],
-  ['खाता', [['customers', '👥', 'ग्राहक / उधार'], ['payments', '💵', 'भुगतान'], ['expenses', '📉', 'खर्च']]],
-  ['सूची', [['items', '🏷', 'रेट लिस्ट']]],
-  ['अन्य', [['reports', '📊', 'रिपोर्ट्स'], ['settings', '⚙', 'सेटिंग्स']]]
+  ['Main', [['dash', '⌂', 'Dashboard'], ['pos', '🧾', 'New Bill'], ['bills', '📄', 'Bill List']]],
+  ['Accounts', [['customers', '👥', 'Customers / Credit'], ['payments', '💵', 'Payments'], ['expenses', '📉', 'Expenses']]],
+  ['Lists', [['items', '🏷', 'Rate List']]],
+  ['Other', [['reports', '📊', 'Reports'], ['settings', '⚙', 'Settings']]]
 ];
 const TITLES = {
-  dash: 'डैशबोर्ड', pos: 'नया बिल', bills: 'बिल लिस्ट', customers: 'ग्राहक और उधार',
-  payments: 'भुगतान', expenses: 'खर्च', items: 'रेट लिस्ट', reports: 'रिपोर्ट्स', settings: 'सेटिंग्स'
+  dash: 'Dashboard', pos: 'New Bill', bills: 'Bill List', customers: 'Customers & Credit',
+  payments: 'Payments', expenses: 'Expenses', items: 'Rate List', reports: 'Reports', settings: 'Settings'
 };
 
 export default function Shell() {
@@ -380,10 +380,10 @@ function useApi(path, deps = []) {
   return { data, err, loading, setData };
 }
 
-function Loading() { return <div className="empty">{T('लोड हो रहा है…')}</div>; }
+function Loading() { return <div className="empty">Loading…</div>; }
 function ErrBox({ e }) {
   return <div className="card"><div className="tag t-r" style={{ display: 'block', padding: 12 }}>
-    {T('डेटा नहीं आया')} — {e}
+    Failed to load data — {e}
   </div></div>;
 }
 

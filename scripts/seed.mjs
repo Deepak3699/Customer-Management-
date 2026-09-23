@@ -7,7 +7,7 @@ dotenv.config();
 
 const url = process.env.DATABASE_URL;
 if (!url) {
-  console.error('❌ DATABASE_URL nahi mila (.env.local check karein)');
+  console.error('❌ DATABASE_URL not found (check .env.local)');
   process.exit(1);
 }
 
@@ -19,17 +19,17 @@ async function seed() {
   // Shop
   await sql`
     insert into shop (id, name, address, mobile, bill_prefix, overdue_days, lang)
-    values (1, 'मेरी दुकान', 'मुख्य बाज़ार, शहर', '9876543210', 'INV', 30, 'hi')
+    values (1, 'Salhotra Multi Store', 'Main Bazaar, City', '9876543210', 'INV', 30, 'en')
     on conflict (id) do update set name = excluded.name;
   `;
 
   // Sample Items
   const items = [
-    { code: 'I1001', name: 'चीनी (Sugar)', category: 'किराना', unit: 'kg', cost_rate: 38, sale_rate: 44, mrp: 45 },
-    { code: 'I1002', name: 'चावल बासमती (Rice)', category: 'किराना', unit: 'kg', cost_rate: 65, sale_rate: 80, mrp: 85 },
-    { code: 'I1003', name: 'सरसों तेल 1L (Mustard Oil)', category: 'तेल', unit: 'ltr', cost_rate: 135, sale_rate: 155, mrp: 165 },
-    { code: 'I1004', name: 'चाय पत्ती 250g (Tea)', category: 'किराना', unit: 'pkt', cost_rate: 90, sale_rate: 110, mrp: 120 },
-    { code: 'I1005', name: 'साबुन (Soap)', category: 'कॉस्मेटिक', unit: 'pcs', cost_rate: 22, sale_rate: 28, mrp: 30 }
+    { code: 'I1001', name: 'Sugar', category: 'Grocery', unit: 'kg', cost_rate: 38, sale_rate: 44, mrp: 45 },
+    { code: 'I1002', name: 'Basmati Rice', category: 'Grocery', unit: 'kg', cost_rate: 65, sale_rate: 80, mrp: 85 },
+    { code: 'I1003', name: 'Mustard Oil 1L', category: 'Oil & Ghee', unit: 'ltr', cost_rate: 135, sale_rate: 155, mrp: 165 },
+    { code: 'I1004', name: 'Tea Leaves 250g', category: 'Grocery', unit: 'pkt', cost_rate: 90, sale_rate: 110, mrp: 120 },
+    { code: 'I1005', name: 'Soap', category: 'Soap & Detergent', unit: 'pcs', cost_rate: 22, sale_rate: 28, mrp: 30 }
   ];
 
   for (const it of items) {
@@ -43,9 +43,9 @@ async function seed() {
 
   // Sample Customers
   const customers = [
-    { name: 'रमेश कुमार (Ramesh)', mobile: '9876500001', address: 'गली नं. 1', opening: 500, credit_limit: 5000 },
-    { name: 'सुरेश शर्मा (Suresh)', mobile: '9876500002', address: 'मेन रोड', opening: 0, credit_limit: 3000 },
-    { name: 'विकास वर्मा (Vikas)', mobile: '9876500003', address: 'वार्ड 4', opening: 1200, credit_limit: 10000 }
+    { name: 'Ramesh Kumar', mobile: '9876500001', address: 'Street No. 1', opening: 500, credit_limit: 5000 },
+    { name: 'Suresh Sharma', mobile: '9876500002', address: 'Main Road', opening: 0, credit_limit: 3000 },
+    { name: 'Vikas Verma', mobile: '9876500003', address: 'Ward 4', opening: 1200, credit_limit: 10000 }
   ];
 
   for (const c of customers) {
@@ -58,7 +58,7 @@ async function seed() {
     }
   }
 
-  console.log('✅ Seed safal! Sample items aur customers create ho gaye.');
+  console.log('✅ Seed successful! Sample items and customers created.');
 }
 
 seed().catch(err => {

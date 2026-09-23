@@ -1,36 +1,35 @@
 /* ===================================================================
-   Shop Manager Online — एक ही जगह सारी सेटिंग्स
-   डिलीवरी के समय सिर्फ TIER बदलना है।
+   Shop Manager Online — Central Configuration
+   Change TIER when upgrading.
    =================================================================== */
 
-export const TIER = 'free';          // 'free' | 'paid'   ← डिलीवरी पर बदलें
+export const TIER = 'free';          // 'free' | 'paid'
 
 const TIERS = {
   free: {
     label: 'Free',
-    // Neon free: 0.5 GB storage, auto-suspend 5 min बाद (cold start ~1s)
+    // Neon free: 0.5 GB storage, auto-suspend after 5 min idle (cold start ~1s)
     dbQuotaMB: 512,
-    // R2 free: 10 GB storage, 1M writes/महीना — फोटो के लिए बहुत है
+    // R2 free: 10 GB storage, 1M writes/month — ample for customer photos
     storageQuotaMB: 10240,
     photoMaxPx: 240,
     photoQuality: 0.70,
-    maxCustomers: 2000,              // 0.5 GB में आराम से
+    maxCustomers: 2000,
     maxPhotos: 5000,
-    backupReminderDays: 7,           // Neon free में PITR नहीं — manual ज़रूरी
-    pitrDays: 0,                     // point-in-time restore नहीं
-    pollSeconds: 0                   // manual refresh (आपने यही चुना)
+    backupReminderDays: 7,
+    pitrDays: 0,
+    pollSeconds: 0
   },
   paid: {
     label: 'Paid',
-    // Neon Launch ($19≈₹1,600) — पर हमारे size पर usage-based ₹0–800 पड़ेगा
     dbQuotaMB: 10240,
     storageQuotaMB: 102400,
     photoMaxPx: 480,
     photoQuality: 0.82,
     maxCustomers: 100000,
     maxPhotos: 100000,
-    backupReminderDays: 30,          // PITR चालू हो जाएगा
-    pitrDays: 7,                     // 7 दिन पीछे तक restore
+    backupReminderDays: 30,
+    pitrDays: 7,
     pollSeconds: 0
   }
 };
