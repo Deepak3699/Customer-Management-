@@ -36,14 +36,14 @@ const TIERS = {
 
 export const LIMITS = TIERS[TIER];
 
-/* ---------- connection (सब .env.local से) ---------- */
+/* ---------- connection (all from .env.local) ---------- */
 export const DB_URL      = process.env.DATABASE_URL;           // Neon
 export const R2 = {
   accountId: process.env.R2_ACCOUNT_ID,
   accessKey: process.env.R2_ACCESS_KEY_ID,
   secretKey: process.env.R2_SECRET_ACCESS_KEY,
   bucket:    process.env.R2_BUCKET || 'shop-photos',
-  publicUrl: process.env.R2_PUBLIC_URL || ''                    // r2.dev या custom domain
+  publicUrl: process.env.R2_PUBLIC_URL || ''                    // r2.dev or custom domain
 };
 export const AUTH = {
   pinHash:   process.env.SHOP_PIN_HASH,                         // bcrypt hash
