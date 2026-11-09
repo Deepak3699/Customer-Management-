@@ -7,14 +7,14 @@
 ## 🌟 Key Features
 
 - 🔐 **Secure PIN Authentication**: Fast login with bcrypt password hashing, encrypted JWT session cookies, and automated brute-force protection (lockout after 5 failed attempts).
-- 👥 **Customer & Khata Ledger**:
+- 👥 **Customer & Credit Ledger**:
   - Full customer directory with optional photo upload via Cloudflare R2 / local fallback.
   - Automated **FIFO (First-In, First-Out)** credit accounting.
   - Ageing summary buckets (`0-15`, `16-30`, `31-60`, `60+` days overdue).
   - One-click **WhatsApp payment reminder** integration.
 - 🧾 **Point of Sale (POS) & Billing**:
   - Instant item lookup via code, name, or USB barcode scanner.
-  - Flexible payment modes: Cash, UPI, Partial, or 100% Credit (Khata).
+  - Flexible payment modes: Cash, UPI, Partial, or 100% Credit.
   - Real-time discount and balance calculations.
 - 🏷️ **Price List & Item Catalog**:
   - Maintain selling prices, cost rates, MRP, and units (kg, litre, pcs, etc.).
@@ -29,7 +29,6 @@
     - Customer Account Statements (Ledger)
     - Defaulter / Overdue Debtors List
     - Monthly P&L and Item Profit Breakdown
-- 🌐 **Bilingual Support (Hindi ⇄ English)**: Instant one-click toggle for the entire UI.
 - 📱 **Responsive PWA**: Install directly to the Home Screen on Android, iPhone, and Desktop without an app store.
 - 🎨 **Premium UI/UX (v2)**: Light-first design with forest-green accents, icon KPI cards, a welcome dashboard,
   a redesigned sidebar, mobile bottom navigation, skeleton loaders, friendly empty states, and a full dark theme.
@@ -120,7 +119,7 @@ The interface was rebuilt around a small set of design tokens in `public/app.css
 | Area | What changed |
 | :--- | :--- |
 | **Theme** | Light-first soft background with forest-green accents (`--acc: #12714a`). Dark mode is opt-in via the `🌓 Theme` button and is remembered in `localStorage`. |
-| **Dashboard** | Welcome panel with greeting + today's date, icon KPI cards, cleaner 6-month bars with value labels, polished credit sections. |
+| **Dashboard** | Welcome panel with greeting + today's date, icon KPI cards (plain English labels), cleaner 6-month bars with value labels, polished credit sections. |
 | **Navigation** | Redesigned sidebar (brand card, grouped items, active pill, high-risk badge, store status footer, theme + logout). Sticky header with page title, subtitle, live date, alert bell and refresh. On phones: slide-in drawer **plus** a thumb-reach bottom nav. |
 | **PIN login** | Split-screen sign-in — forest-green brand panel with product highlights on the left, PIN dots + keypad + security messaging on the right. Shake + haptic feedback on a wrong PIN. |
 | **Components** | Restyled cards, tables (sticky headers), buttons, forms, segmented controls, modals (sticky header/footer, pop-in animation), toasts, skeletons and empty states. |

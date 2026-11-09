@@ -24,7 +24,7 @@ export default function Login() {
 
   async function submit(value) {
     const p = value ?? pin;
-    if (p.length < 4) { fail('Kam se kam 4 digit ka PIN daalein'); return; }
+    if (p.length < 4) { fail('Please enter at least 4 digits'); return; }
     setBusy(true); setErr('');
     try {
       const r = await fetch('/api/auth/login', {
@@ -33,11 +33,11 @@ export default function Login() {
       });
       const d = await r.json();
       if (d.ok) { location.href = '/'; return; }
-      if (d.locked) fail(`Bahut saari galat koshishein — ${d.waitMin} minute baad koshish karein`);
-      else if (d.error === 'PIN_NOT_SET') fail('PIN set nahi hai — npm run pin chalaayein');
-      else fail(`Galat PIN${d.left != null ? ` — ${d.left} koshish baaki` : ''}`);
+      if (d.locked) fail(`Too many failed attempts — please try again in ${d.waitMin} minutes`);
+      else if (d.error === 'PIN_NOT_SET') fail('No PIN is configured yet — run: npm run pin');
+      else fail(`Incorrect PIN${d.left != null ? ` — ${d.left} attempts left` : ''}`);
       setPin('');
-    } catch { fail('Connection fail ho gaya — dobara koshish karein'); }
+    } catch { fail('Connection failed — please try again'); }
     setBusy(false);
   }
 
@@ -72,21 +72,21 @@ export default function Login() {
         </div>
 
         <div className="auth-brand-body">
-          <h1>Apni dukaan ka<br />poora hisaab — <span>ek jagah.</span></h1>
-          <p>Khata, billing, payment reminders aur munafa ki report — sab kuch aapke mobile aur computer par, bina internet ke bhi.</p>
+          <h1>Your entire shop record,<br /><span>all in one place.</span></h1>
+          <p>Ledgers, billing, payment reminders and profit reports — on your phone or your computer, even without an internet connection.</p>
 
           <ul className="auth-points">
             <li><span className="ap-ico">🔐</span>
-              <span><b>Secure PIN</b>PIN hash hokar save hota hai, kabhi plain-text nahi</span></li>
+              <span><b>Secure PIN</b>Your PIN is stored as a hash, never as plain text</span></li>
             <li><span className="ap-ico">📒</span>
-              <span><b>Khata &amp; Ledger</b>Har customer ka udhaar, bill-wise aur FIFO hisaab</span></li>
+              <span><b>Ledger &amp; Credit</b>Every balance tracked bill by bill with FIFO accounting</span></li>
             <li><span className="ap-ico">💬</span>
-              <span><b>WhatsApp Reminder</b>Ek tap mein payment yaad dilayein</span></li>
+              <span><b>WhatsApp Reminders</b>Send a payment reminder in a single tap</span></li>
           </ul>
         </div>
 
         <div className="auth-brand-foot">
-          <span className="auth-dot" /> Data aapke device aur secure database mein surakshit hai
+          <span className="auth-dot" /> Your data stays safe on your device and in a secure database
         </div>
       </aside>
 
@@ -96,8 +96,8 @@ export default function Login() {
 
         <div className="auth-card">
           <div className="auth-head">
-            <h2>PIN daal kar kholein</h2>
-            <p>Apna 4 se 6 digit ka shop PIN enter karein</p>
+            <h2>Enter your PIN</h2>
+            <p>Use your 4 to 6 digit shop PIN to continue</p>
           </div>
 
           <div className={'pin-dots' + (shake ? ' shake' : '')} onClick={() => ref.current?.focus()}>
@@ -134,7 +134,7 @@ export default function Login() {
 
           <div className="auth-secure">
             <span className="as-ico">🛡️</span>
-            <span>5 baar galat PIN par 15 minute ke liye lock ho jayega</span>
+            <span>Access locks for 15 minutes after 5 incorrect attempts</span>
           </div>
         </div>
 
