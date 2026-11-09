@@ -61,7 +61,10 @@ function Toasts() {
     };
   }, []);
   return <div id="toasts">{list.map(t =>
-    <div key={t.id} className={'toast ' + (t.kind || '')}>{t.msg}</div>)}</div>;
+    <div key={t.id} className={'toast ' + (t.kind || 'ok')}>
+      <span className="t-ico">{t.kind === 'err' ? '✕' : t.kind === 'warn' ? '!' : '✓'}</span>
+      <span>{t.msg}</span>
+    </div>)}</div>;
 }
 
 /* ---------- photo capture ---------- */
@@ -212,7 +215,7 @@ export function WhatsAppModal({ cust, shop, onClose }) {
           >
             <div className="tpl-title">
               <span>{t.icon} {t.title}</span>
-              {selectedId === t.id && <span style={{ color: 'var(--acc2)', fontSize: 12 }}>✓</span>}
+              {selectedId === t.id && <span style={{ color: 'var(--ok)', fontSize: 12 }}>✓</span>}
             </div>
             <div className="tpl-desc">{t.desc}</div>
           </div>
@@ -251,15 +254,42 @@ export function WhatsAppModal({ cust, shop, onClose }) {
    SHELL
    ===================================================================== */
 const NAV = [
-  ['Main', [['dash', '⌂', 'Dashboard'], ['pos', '🧾', 'New Bill'], ['bills', '📄', 'Bill List']]],
-  ['Accounts', [['customers', '👥', 'Customers & Credit'], ['payments', '💵', 'Payments'], ['expenses', '📉', 'Expenses']]],
-  ['Lists', [['items', '🏷', 'Rate List']]],
-  ['Other', [['reports', '📊', 'Reports'], ['settings', '⚙', 'Settings']]]
+  ['Main', [['dash', '🏠', 'Dashboard'], ['pos', '🧾', 'New Bill'], ['bills', '📋', 'Bill List']]],
+  ['Accounts', [['customers', '👥', 'Customers'], ['payments', '💵', 'Payments'], ['expenses', '📉', 'Expenses']]],
+  ['Catalogue', [['items', '🏷️', 'Rate List']]],
+  ['Insights', [['reports', '📊', 'Reports'], ['settings', '⚙️', 'Settings']]]
 ];
 const TITLES = {
   dash: 'Dashboard', pos: 'New Bill', bills: 'Bill List', customers: 'Customers & Credit',
   payments: 'Payments', expenses: 'Expenses', items: 'Rate List', reports: 'Reports', settings: 'Settings'
 };
+const SUBTITLES = {
+  dash: 'Aaj ka hisaab — ek nazar mein', pos: 'Naya bill banayein',
+  bills: 'Purane bills dekhein aur print karein',
+  customers: 'Khata, ledger aur payment reminders',
+  payments: 'Customer se mili rashi record karein',
+  expenses: 'Dukaan ke kharchon ka record',
+  items: 'Billing ke liye rate list',
+  reports: 'Munafa, sale aur credit ki report',
+  settings: 'Dukaan ki jaankari aur limits'
+};
+/* thumb-reach shortcuts for phones */
+const MOBILE_NAV = [
+  ['dash', '🏠', 'Home'], ['pos', '🧾', 'Bill'],
+  ['customers', '👥', 'Khata'], ['payments', '💵', 'Payment'],
+  ['reports', '📊', 'Report']
+];
+
+const longDate = () => new Date().toLocaleDateString('en-IN',
+  { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+const shortDate = () => new Date().toLocaleDateString('en-IN',
+  { weekday: 'short', day: 'numeric', month: 'short' });
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
 
 export default function Shell() {
   const [view, setView] = useState('dash');
@@ -277,17 +307,20 @@ export default function Shell() {
   const highRiskCount = weeklyData?.highRisk?.length || 0;
   const alertCount = highRiskCount + (weeklyData?.overdue?.length || 0);
 
-  // Restore theme preference from localStorage
+  // Restore theme preference (light is the default; dark is opt-in)
   useEffect(() => {
     const th = localStorage.getItem('theme');
-    if (th === 'light') document.body.classList.add('light');
+    if (th === 'dark') document.body.classList.add('dark');
   }, []);
 
   function toggleTheme() {
-    document.body.classList.toggle('light');
-    localStorage.setItem('theme', document.body.classList.contains('light') ? 'light' : 'dark');
+    const isDark = document.body.classList.toggle('dark');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
   }
-  function go(v) { setView(v); setNav(false); }
+  function go(v) { setView(v); setNav(false); window.scrollTo?.(0, 0); }
+  function logout() {
+    fetch('/api/auth/logout', { method: 'POST' }).finally(() => { location.href = '/login'; });
+  }
 
   const ctx = { refresh, setModal, go, busy, setBusy, lang: 'en', shop, weeklyData };
   const Screen = {
@@ -296,63 +329,96 @@ export default function Shell() {
     reports: Reports, settings: Settings
   }[view];
 
+  const storeName = shop?.name || 'Salhotra Multi Store';
+
   return (
     <>
       <div id="app">
         <aside id="side" className={nav ? 'open' : ''}>
-          <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <img src="/logo.png" alt="Logo" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
-            <div>
-              <b style={{ fontSize: 16, lineHeight: 1.2, display: 'block' }}>Udhar Book</b>
-              <span style={{ fontSize: 11, color: 'var(--mut)' }}>Salhotra Multi Store</span>
+          <div className="side-brand">
+            <img className="side-logo" src="/logo.png" alt="Logo" />
+            <div className="side-brand-txt">
+              <b>Udhar Book</b>
+              <span>{storeName}</span>
             </div>
+            <button className="x" style={{ marginLeft: 'auto' }} onClick={() => setNav(false)} aria-label="Close menu">×</button>
           </div>
+
           <nav id="nav">
             {NAV.map(([g, xs]) => (
               <div key={g}>
                 <div className="grp">{g}</div>
                 {xs.map(([id, ic, t]) => (
-                  <a key={id} className={view === id ? 'on' : ''} onClick={() => go(id)}>
-                    <i>{ic}</i>{t}
+                  <a key={id} className={view === id ? 'on' : ''} onClick={() => go(id)} title={t}>
+                    <i>{ic}</i><span>{t}</span>
+                    {id === 'customers' && highRiskCount > 0 && <span className="badge">{highRiskCount}</span>}
                   </a>
                 ))}
               </div>
             ))}
           </nav>
-          <div className="foot">
-            <button className="btn sm o" onClick={toggleTheme} style={{ flex: 1 }} title="Toggle Theme">🌓</button>
-            <button className="btn sm o" onClick={async () => {
-              await fetch('/api/auth/logout', { method: 'POST' }); location.href = '/login';
-            }} title="Logout">⏻</button>
+
+          <div className="side-foot">
+            <div className="store-status">
+              <span className="store-dot" />
+              <div className="store-status-txt">
+                <b>Sab kuch safe hai</b>
+                <span>{shortDate()}</span>
+              </div>
+            </div>
+            <div className="side-actions">
+              <button className="btn sm o" style={{ flex: 1 }} onClick={toggleTheme} title="Light / Dark theme">
+                🌓 Theme
+              </button>
+              <button className="btn sm o" onClick={logout} title="Logout">⏻</button>
+            </div>
           </div>
         </aside>
 
-        {nav && <div className="navmask" onClick={() => setNav(false)} />}
+        <div className={'navmask' + (nav ? ' show' : '')} onClick={() => setNav(false)} />
 
         <main id="main">
           <header id="top">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <button className="btn sm o hamb" onClick={() => setNav(true)}>☰</button>
-              <h2 id="title">{TITLES[view]}</h2>
+            <div className="top-lhs">
+              <button className="icon-btn hamb" onClick={() => setNav(true)} aria-label="Open menu">☰</button>
+              <div style={{ minWidth: 0 }}>
+                <h2 id="title">{TITLES[view]}</h2>
+                <div className="crumb">{SUBTITLES[view]}</div>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <div className="top-rhs">
+              <span className="top-date">📅 {longDate()}</span>
               <button
-                className="btn sm o notif-btn"
-                title="Weekly Alerts"
+                className="icon-btn notif-btn"
+                title="Weekly credit alerts"
                 onClick={() => setModal(<Weekly shop={shop} onClose={() => setModal(null)} setModal={setModal} />)}
               >
                 🔔
-                {alertCount > 0 && <span className="notif-badge">{alertCount}</span>}
+                {alertCount > 0 && <span className={'notif-badge' + (highRiskCount > 0 ? ' pulse' : '')}>{alertCount}</span>}
               </button>
-              <button className="btn sm o" onClick={refresh} title="Refresh">
-                {busy ? '⏳' : '↻'}
-              </button>
+              <button className={'icon-btn' + (busy ? ' spin' : '')} onClick={refresh} title="Refresh data">↻</button>
             </div>
           </header>
+
           <section id="view">
-            <Screen key={view + tick} {...ctx} />
+            <div className="view-inner">
+              <Screen key={view + tick} {...ctx} />
+            </div>
           </section>
         </main>
+
+        <nav className="mobnav">
+          <div className="mobnav-in">
+            {MOBILE_NAV.map(([id, ic, t]) => (
+              <button key={id} className={view === id ? 'on' : ''} onClick={() => go(id)}>
+                <i>{ic}</i>{t}
+              </button>
+            ))}
+            <button onClick={() => setNav(true)}>
+              <i>☰</i>More
+            </button>
+          </div>
+        </nav>
 
         {modal && <div className="mask" onClick={e => e.target === e.currentTarget && setModal(null)}>
           {modal}
@@ -380,11 +446,41 @@ function useApi(path, deps = []) {
   return { data, err, loading, setData };
 }
 
-function Loading() { return <div className="empty">Loading…</div>; }
+function Loading({ rows = 4 }) {
+  return <div className="grid g4" style={{ marginBottom: 16 }}>
+    {Array.from({ length: rows }).map((_, i) => (
+      <div className="kpi" key={i}>
+        <div className="skel" style={{ width: 96, height: 12, marginBottom: 12 }} />
+        <div className="skel" style={{ width: '70%', height: 26, marginBottom: 8 }} />
+        <div className="skel" style={{ width: '45%', height: 11 }} />
+      </div>
+    ))}
+  </div>;
+}
+function TableLoading({ cols = 5, rows = 6 }) {
+  return <div className="tw"><table><tbody>
+    {Array.from({ length: rows }).map((_, r) => (
+      <tr key={r}>{Array.from({ length: cols }).map((_, c) => (
+        <td key={c}><div className="skel" style={{ height: 13, width: c === 0 ? '80%' : '55%' }} /></td>
+      ))}</tr>
+    ))}
+  </tbody></table></div>;
+}
 function ErrBox({ e }) {
-  return <div className="card"><div className="tag t-r" style={{ display: 'block', padding: 12 }}>
-    Failed to load data — {e}
-  </div></div>;
+  return <div className="card" style={{ borderColor: 'var(--dan)' }}>
+    <div className="empty sm" style={{ color: 'var(--dan)' }}>
+      <div className="e-ico" style={{ background: 'var(--dan-soft)' }}>⚠️</div>
+      <b>Data load nahi ho paaya</b>
+      <span>{e} — upar ↻ dabakar dobara koshish karein.</span>
+    </div>
+  </div>;
+}
+function Empty({ icon = '📭', title = 'Koi data nahi', sub = '' }) {
+  return <div className="empty">
+    <div className="e-ico">{icon}</div>
+    <b>{title}</b>
+    {sub && <span>{sub}</span>}
+  </div>;
 }
 
 /* =====================================================================
@@ -399,64 +495,73 @@ function Dash({ go, setModal, shop, weeklyData }) {
 
   const highRiskCount = weeklyData?.highRisk?.length || 0;
   const highRiskTotal = weeklyData?.highRisk?.reduce((s, c) => s + Number(c.balance), 0) || 0;
+  const storeName = shop?.name || 'Salhotra Multi Store';
 
   return <>
+    <div className="welcome">
+      <div className="welcome-in">
+        <div>
+          <h1>{greeting()} 👋</h1>
+          <div className="w-sub">Aaj {storeName} ka hisaab — sab kuch yahin milega.</div>
+          <div className="w-date">📅 {longDate()}</div>
+        </div>
+        <div className="welcome-actions">
+          <button className="w-btn" onClick={() => go('pos')}>🧾 Naya Bill</button>
+          <button className="w-btn ghost" onClick={() => setModal(<PaymentForm onClose={() => setModal(null)} onDone={() => { setModal(null); go('dash'); }} />)}>
+            💵 Payment Lein
+          </button>
+        </div>
+      </div>
+    </div>
+
     {/* Weekly Alert Banner */}
     {highRiskCount > 0 && (
       <div className="alert-banner">
         <div className="alert-banner-content">
           <span className="alert-banner-icon">🔔</span>
-          <div>
-            <b style={{ color: 'var(--dan)' }}>Weekly Credit Review</b>
-            <div className="sml mut" style={{ marginTop: 2 }}>
-              {highRiskCount} customers are in high risk · {money(highRiskTotal)} Overdue Amount
-            </div>
+          <div className="alert-banner-txt">
+            <b>Weekly Credit Review</b>
+            <span>{highRiskCount} customers high risk mein hain · {money(highRiskTotal)} baaki hai</span>
           </div>
         </div>
         <button
           className="btn sm w"
           onClick={() => setModal(<Weekly shop={shop} onClose={() => setModal(null)} setModal={setModal} />)}
         >
-          💬 View Report / WhatsApp
+          💬 Report / WhatsApp
         </button>
       </div>
     )}
 
-    <div className="grid g4" style={{ marginBottom: 16 }}>
-      <Kpi cls="bl" l="Today's Sale" v={money(td.sale)} s={`${td.bills} bills`} />
-      <Kpi cls="ok" l="Today's Profit" v={money(td.profit)} />
-      <Kpi cls="dg" l="Total Outstanding" v={money(recv.total)} s={`${recv.cnt} customers`} />
-      <Kpi cls="wr" l="Old Dues" v={od.cnt} s={money(od.total)} />
+    <div className="sec-head">
+      <div>
+        <div className="sec-title">Aaj ka hisaab</div>
+        <div className="sec-sub">Pura din ka sale, munafa aur baaki udhaar</div>
+      </div>
     </div>
 
-    <div className="bar">
-      <button className="btn" onClick={() => go('pos')}>＋ New Bill</button>
-      <button className="btn o" onClick={() => setModal(<CustomerForm onDone={() => { setModal(null); go('customers'); }} onClose={() => setModal(null)} />)}>
-        👤 New Customer
-      </button>
-      <button className="btn g" onClick={() => setModal(<PaymentForm onClose={() => setModal(null)} onDone={() => { setModal(null); go('dash'); }} />)}>
-        💵 Receive Payment
-      </button>
-      <span className="sp" />
-      <button className="btn w" onClick={() => setModal(<Weekly shop={shop} onClose={() => setModal(null)} setModal={setModal} />)}>
-        🔔 Weekly Report
-      </button>
+    <div className="grid g4" style={{ marginBottom: 16 }}>
+      <Kpi cls="bl" icon="🧾" l="Aaj ki Sale" v={money(td.sale)} s={`${td.bills} bills aaj`} />
+      <Kpi cls="ok" icon="📈" l="Aaj ka Munafa" v={money(td.profit)} s="Sale minus cost" />
+      <Kpi cls="dg" icon="👥" l="Total Udhaar" v={money(recv.total)} s={`${recv.cnt} customers`} />
+      <Kpi cls="wr" icon="⏳" l="Purane Dues" v={od.cnt} s={`${money(od.total)} baaki`} />
     </div>
 
     <div className="grid g2">
       <div className="card">
-        <h3>This Month</h3>
+        <h3><span className="h3-ico">🗓️</span>Is Mahine<span className="sp">{new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}</span></h3>
         <Row l="Total Sale" v={money(pl.sale)} />
-        <Row l="Cost of Goods (COGS)" v={money(pl.cogs)} />
-        <Row l="Gross Profit" v={money(pl.grossProfit)} color="var(--acc2)" />
-        <Row l="Expenses" v={money(pl.expenses)} color="var(--dan)" />
+        <Row l="Maal ki laagat (COGS)" v={money(pl.cogs)} />
+        <Row l="Gross Profit" v={money(pl.grossProfit)} color="var(--ok)" />
+        <Row l="Kharchay (Expenses)" v={money(pl.expenses)} color="var(--dan)" />
         <div className="tot big"><span>Net Profit</span>
-          <span style={{ color: pl.netProfit >= 0 ? 'var(--acc2)' : 'var(--dan)' }}>{money(pl.netProfit)}</span></div>
+          <span style={{ color: pl.netProfit >= 0 ? 'var(--ok)' : 'var(--dan)' }}>{money(pl.netProfit)}</span></div>
       </div>
       <div className="card">
-        <h3>Last 6 Months Sale</h3>
+        <h3><span className="h3-ico">📊</span>Pichle 6 Mahine ki Sale</h3>
         <div className="bars">{last6.map(m => (
           <div className="b" key={m.ym} title={money(m.sale)}>
+            <em>{Number(m.sale) >= 1000 ? (Number(m.sale) / 1000).toFixed(1) + 'k' : n2(m.sale)}</em>
             <i style={{ height: `${Math.max(3, Number(m.sale) / mx * 100)}%` }} />
             <span>{m.ym.slice(5)}</span>
           </div>
@@ -465,15 +570,19 @@ function Dash({ go, setModal, shop, weeklyData }) {
     </div>
 
     <div className="grid g2">
-      <DebtorCard title="Top Debtors" rows={topDebtors} setModal={setModal} shop={shop} empty="No credit pending ✓" />
-      <DebtorCard title="Oldest Dues" rows={oldest} setModal={setModal} shop={shop} empty="No old dues ✓" />
+      <DebtorCard title="Sabse zyada udhaar" rows={topDebtors} setModal={setModal} shop={shop} />
+      <DebtorCard title="Sabse purane dues" rows={oldest} setModal={setModal} shop={shop} />
     </div>
   </>;
 }
 
-function Kpi({ cls, l, v, s }) {
-  return <div className={'kpi ' + cls}>
-    <div className="l">{l}</div><div className="v">{v}</div>
+function Kpi({ cls, icon, l, v, s, onClick }) {
+  return <div className={'kpi ' + (cls || '') + (onClick ? ' clickable' : '')} onClick={onClick}>
+    <div className="kpi-top">
+      {icon && <span className="kpi-ico">{icon}</span>}
+      <span className="l">{l}</span>
+    </div>
+    <div className="v">{v}</div>
     {s && <div className="s">{s}</div>}
   </div>;
 }
@@ -481,14 +590,18 @@ function Row({ l, v, color }) {
   return <div className="tot"><span className="mut">{l}</span><b style={color ? { color } : {}}>{v}</b></div>;
 }
 function DebtorCard({ title, rows, setModal, empty, shop }) {
-  return <div className="card"><h3>{title}</h3>
+  return <div className="card">
+    <h3><span className="h3-ico">👥</span>{title}<span className="sp">{rows.length} customers</span></h3>
     {rows.length ? <div className="tw"><table>
       <thead><tr><th>Customer</th><th className="r">Amount</th><th className="r">Days</th><th>Status</th><th /></tr></thead>
       <tbody>{rows.map(c => {
         const st = getCustomerStatus(c, shop);
         return <tr key={c.id}>
           <td style={{ cursor: 'pointer' }} onClick={() => setModal(<Ledger id={c.id} shop={shop} onClose={() => setModal(null)} setModal={setModal} />)}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Avatar c={c} size={26} /><b>{c.name}</b></div>
+            <div className="rowflex">
+              <Avatar c={c} size={32} />
+              <div className="rf-txt"><b>{c.name}</b><span>{c.mobile || '—'}</span></div>
+            </div>
           </td>
           <td className="num"><b style={{ color: 'var(--dan)' }}>{money(c.balance)}</b></td>
           <td className="num">{c.days_overdue}</td>
@@ -497,16 +610,17 @@ function DebtorCard({ title, rows, setModal, empty, shop }) {
             {c.mobile && (
               <button
                 className="btn sm w"
-                title="WhatsApp Reminder"
+                title="WhatsApp reminder bhejein"
                 onClick={() => setModal(<WhatsAppModal cust={c} shop={shop} onClose={() => setModal(null)} />)}
               >
-                WA
+                💬 WA
               </button>
             )}
           </td>
         </tr>;
       })}</tbody>
-    </table></div> : <div className="empty">{empty}</div>}
+    </table></div> : <Empty icon="✅" title={empty || 'Koi udhaar baaki nahi'}
+      sub="Sab customers ka hisaab clear hai" />}
   </div>;
 }
 
@@ -585,8 +699,8 @@ function POS({ refresh, setModal }) {
 
   return <div className="pos">
     <div>
-      <div className="card">
-        <div className="row" style={{ marginBottom: 10 }}>
+      <div className="pos-card">
+        <div className="row" style={{ marginBottom: 12 }}>
           <div style={{ flex: 2 }}>
             <label>Customer</label>
             <select value={custId} onChange={e => setCustId(e.target.value)}>
@@ -597,20 +711,24 @@ function POS({ refresh, setModal }) {
           <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'flex-end' }}>
             <button className="btn o" onClick={() => setModal(
               <CustomerForm onClose={() => setModal(null)} onDone={c => { setModal(null); setCustId(String(c.id)); }} />
-            )}>＋ New</button>
+            )}>＋ Naya</button>
           </div>
         </div>
-        {cust && <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-          <Avatar c={cust} size={30} /><b>{cust.name}</b>
-          {Number(cust.balance) > 0 && <span className="tag t-w">Old Dues: {money(cust.balance)}</span>}
+        {cust && <div className="rowflex" style={{ marginBottom: 12, padding: '10px 12px', background: 'var(--panel2)', borderRadius: 12, border: '1px solid var(--line)' }}>
+          <Avatar c={cust} size={34} />
+          <div className="rf-txt" style={{ flex: 1 }}><b>{cust.name}</b><span>{cust.mobile || 'Mobile nahi'}</span></div>
+          {Number(cust.balance) > 0 && <span className="tag t-w">Purana udhaar {money(cust.balance)}</span>}
           {Number(cust.credit_limit) > 0 && Number(cust.balance) > Number(cust.credit_limit) &&
             <span className="tag t-r">Limit Crossed</span>}
         </div>}
 
-        <label>Search item — type name / code / barcode</label>
+        <label>Samaan khojein — naam / code / barcode</label>
         <div className="sug">
-          <input ref={searchRef} value={q} onChange={e => setQ(e.target.value)} onKeyDown={key}
-            placeholder="e.g. Sugar, Flour, I1001 …" autoComplete="off" />
+          <div className="search-wrap">
+            <span className="s-ico">🔍</span>
+            <input ref={searchRef} value={q} onChange={e => setQ(e.target.value)} onKeyDown={key}
+              placeholder="Jaise: Sugar, Chawal, I1001 …" autoComplete="off" style={{ paddingLeft: 36 }} />
+          </div>
           {sug.length > 0 && <div className="sugbox">
             {sug.map((i, x) => (
               <div key={i.id} className={x === hi ? 'hi' : ''} onClick={() => addLine(i)}>
@@ -622,8 +740,8 @@ function POS({ refresh, setModal }) {
         </div>
       </div>
 
-      <div className="card">
-        <div className="tw"><table>
+      <div className="pos-card flush" style={{ padding: 0 }}>
+        <div className="tw" style={{ border: 0, borderRadius: 'var(--rad)', boxShadow: 'none' }}><table>
           <thead><tr><th style={{ width: 34 }}>#</th><th>Item</th>
             <th className="r" style={{ width: 90 }}>Qty</th>
             <th className="r" style={{ width: 100 }}>Rate</th>
@@ -639,44 +757,55 @@ function POS({ refresh, setModal }) {
               <td className="num"><b>{money(l.qty * l.rate - l.disc)}</b></td>
               <td><button className="x" onClick={() => setLines(ls => ls.filter((_, x) => x !== i))}>×</button></td>
             </tr>
-          )) : <tr><td colSpan={7} className="empty">Search above to add items</td></tr>}</tbody>
+          )) : <tr><td colSpan={7}><Empty icon="🔍" title="Abhi koi samaan nahi" sub="Upar search box mein item ka naam likhein" /></td></tr>}</tbody>
         </table></div>
       </div>
     </div>
 
     <div>
-      <div className="card">
-        <h3>Payment</h3>
+      <div className="pos-card">
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span className="h3-ico">💳</span>Payment
+        </h3>
+        <div className="pay-hero">
+          <div className="ph-l">Bill Total</div>
+          <div className="ph-v">{money(total)}</div>
+        </div>
         <div className="tot"><span className="mut">Sub-total</span><b>{money(sub)}</b></div>
         <div className="tot"><span className="mut">Bill Discount</span>
           <input className="num" type="number" style={{ width: 110 }} value={discount}
             onChange={e => setDiscount(Number(e.target.value) || 0)} /></div>
-        <div className="tot big"><span>Total</span><span>{money(total)}</span></div>
-        <div style={{ height: 14 }} />
-        <label>Payment Mode</label>
+        <div style={{ height: 12 }} />
+        <label>Payment ka tarika</label>
         <div className="pm">
-          {[['Cash', '💵 Cash'], ['UPI', '📱 UPI'], ['Udhaar', '📒 Credit'], ['Partial', '½ Partial']]
+          {[['Cash', '💵 Cash'], ['UPI', '📱 UPI'], ['Udhaar', '📒 Udhaar'], ['Partial', '½ Partial']]
             .map(([m, lbl]) => (
               <button key={m} className={mode === m ? 'on' : ''}
                 onClick={() => { setMode(m); setPaid(m === 'Udhaar' ? 0 : total); }}>{lbl}</button>
             ))}
         </div>
-        {mode === 'Partial' && <div className="field"><label>Received Now</label>
+        {mode === 'Partial' && <div className="field"><label>Abhi mile</label>
           <input className="num" type="number" value={paid} onChange={e => setPaid(Number(e.target.value) || 0)} /></div>}
         {(mode === 'Udhaar' || mode === 'Partial') &&
-          <div className="tot"><span className="mut">Goes to Credit</span>
+          <div className="tot"><span className="mut">Udhaar mein jayega</span>
             <b style={{ color: 'var(--dan)' }}>{money(total - paid)}</b></div>}
         {(mode === 'Udhaar' || mode === 'Partial') && !custId &&
-          <div className="tag t-r" style={{ margin: '8px 0', display: 'block', padding: 8 }}>Select a customer for credit sale</div>}
-        <div style={{ height: 12 }} />
-        <button className="btn g" style={{ width: '100%', padding: 14, fontSize: 16 }}
+          <div className="tag t-r" style={{ margin: '8px 0 0', display: 'block', padding: 9 }}>
+            Udhaar ke liye customer chunein
+          </div>}
+        <div style={{ height: 14 }} />
+        <button className="btn g block" style={{ padding: 14, fontSize: 16 }}
           disabled={!lines.length || saving} onClick={() => save(true)}>
-          {saving ? '…' : 'Save + Print'}
+          {saving ? 'Save ho raha hai…' : '🧾 Save & Print'}
         </button>
         <div style={{ height: 8 }} />
-        <div className="row">
-          <button className="btn o" disabled={!lines.length || saving} onClick={() => save(false)}>Save Only</button>
-          <button className="btn r" onClick={() => { setLines([]); setDiscount(0); setMode('Cash'); }}>Cancel</button>
+        <div className="row" style={{ gap: 8 }}>
+          <button className="btn o" style={{ flex: 1 }} disabled={!lines.length || saving} onClick={() => save(false)}>
+            Sirf Save
+          </button>
+          <button className="btn r" style={{ flex: '0 0 auto' }} onClick={() => { setLines([]); setDiscount(0); setMode('Cash'); }}>
+            Clear
+          </button>
         </div>
       </div>
     </div>
@@ -712,69 +841,82 @@ function Customers({ setModal, refresh, shop }) {
   const lowCnt = data.filter(c => getCustomerStatus(c, shop).key === 'low').length;
   const clearCnt = data.filter(c => getCustomerStatus(c, shop).key === 'clear').length;
 
+  const dueTotal = data.filter(c => Number(c.balance) > 0.5).reduce((s, c) => s + Number(c.balance), 0);
+
   return <>
     <div className="bar">
-      <div style={{ flex: 2 }}><label>Search</label>
-        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Name / Mobile" /></div>
-      <div><label>Filter (Auto Status)</label>
+      <div className="f" style={{ flex: 2, minWidth: 200 }}>
+        <label>Search</label>
+        <div className="search-wrap">
+          <span className="s-ico">🔍</span>
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Naam ya mobile number" style={{ paddingLeft: 36 }} />
+        </div>
+      </div>
+      <div className="f">
+        <label>Risk filter</label>
         <select value={only} onChange={e => setOnly(e.target.value)}>
-          <option value="">All Customers ({data.length})</option>
+          <option value="">Sabhi Customers ({data.length})</option>
           <option value="high">🔴 High Risk ({highCnt})</option>
           <option value="med">🟠 Medium Risk ({medCnt})</option>
           <option value="low">🟢 Low Risk ({lowCnt})</option>
-          <option value="due">With Outstanding</option>
+          <option value="due">Udhaar baaki hai</option>
           <option value="clear">⚪ Clear ({clearCnt})</option>
-        </select></div>
-      <div style={{ flex: '0 0 auto', alignSelf: 'flex-end' }}>
+        </select>
+      </div>
+      <div className="f auto">
         <button className="btn" onClick={() => setModal(
           <CustomerForm onClose={() => setModal(null)} onDone={() => { setModal(null); refresh(); }} />
-        )}>＋ Customer</button></div>
-      <div style={{ flex: '0 0 auto', alignSelf: 'flex-end' }}>
-        <button className="btn r" onClick={() => printDefaulters(data.filter(c => Number(c.balance) > 0.5), ag)}>
-          📄 Credit PDF</button></div>
-    </div>
-
-    <div className="grid g4" style={{ marginBottom: 14 }}>
-      <div className="kpi dg" style={{ cursor: 'pointer' }} onClick={() => setOnly(only === 'high' ? '' : 'high')}>
-        <div className="l">🔴 High Risk</div>
-        <div className="v">{highCnt} <span style={{ fontSize: 13, fontWeight: 'normal', color: 'var(--mut)' }}>Customers</span></div>
+        )}>＋ Naya Customer</button>
       </div>
-      <div className="kpi wr" style={{ cursor: 'pointer' }} onClick={() => setOnly(only === 'med' ? '' : 'med')}>
-        <div className="l">🟠 Medium Risk</div>
-        <div className="v">{medCnt} <span style={{ fontSize: 13, fontWeight: 'normal', color: 'var(--mut)' }}>Customers</span></div>
-      </div>
-      <div className="kpi ok" style={{ cursor: 'pointer' }} onClick={() => setOnly(only === 'low' ? '' : 'low')}>
-        <div className="l">🟢 Low Risk</div>
-        <div className="v">{lowCnt} <span style={{ fontSize: 13, fontWeight: 'normal', color: 'var(--mut)' }}>Customers</span></div>
-      </div>
-      <div className="kpi bl" style={{ cursor: 'pointer' }} onClick={() => setOnly(only === 'clear' ? '' : 'clear')}>
-        <div className="l">⚪ Clear</div>
-        <div className="v">{clearCnt} <span style={{ fontSize: 13, fontWeight: 'normal', color: 'var(--mut)' }}>Customers</span></div>
+      <div className="f auto">
+        <button className="btn o" onClick={() => printDefaulters(data.filter(c => Number(c.balance) > 0.5), ag)}>
+          📄 Credit PDF</button>
       </div>
     </div>
 
-    <div className="card"><div className="tw"><table>
-      <thead><tr><th>Name</th><th>Mobile</th><th className="r">Balance Due</th>
-        <th className="r">Days</th><th>Auto Status</th><th /></tr></thead>
+    <div className="grid g4" style={{ marginBottom: 16 }}>
+      <Kpi cls="dg" icon="🔴" l="High Risk" v={highCnt} s="Turant payment lena chahiye"
+        onClick={() => setOnly(only === 'high' ? '' : 'high')} />
+      <Kpi cls="wr" icon="🟠" l="Medium Risk" v={medCnt} s="Yaad dilane layak"
+        onClick={() => setOnly(only === 'med' ? '' : 'med')} />
+      <Kpi cls="ok" icon="🟢" l="Low Risk" v={lowCnt} s="Normal hisaab"
+        onClick={() => setOnly(only === 'low' ? '' : 'low')} />
+      <Kpi cls="bl" icon="⚪" l="Clear" v={clearCnt} s={`Kul udhaar ${money(dueTotal)}`}
+        onClick={() => setOnly(only === 'clear' ? '' : 'clear')} />
+    </div>
+
+    <div className="tw"><table>
+      <thead><tr><th>Customer</th><th>Mobile</th><th className="r">Baaki Rashi</th>
+        <th className="r">Din</th><th>Status</th><th /></tr></thead>
       <tbody>{rows.length ? rows.map(c => {
         const bal = Number(c.balance);
         const st = getCustomerStatus(c, shop);
         return <tr key={c.id}>
-          <td><div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Avatar c={c} size={34} /><b>{c.name}</b></div></td>
+          <td>
+            <div className="rowflex">
+              <Avatar c={c} size={36} />
+              <div className="rf-txt">
+                <b>{c.name}</b>
+                <span>{c.ageing_bucket === 'clear' ? 'Hisaab clear' : (c.ageing_bucket + ' din purana')}</span>
+              </div>
+            </div>
+          </td>
           <td className="mut">{c.mobile}</td>
-          <td className="num"><b style={{ color: bal > 0 ? 'var(--dan)' : 'var(--acc2)' }}>{money(bal)}</b></td>
+          <td className="num"><b style={{ color: bal > 0 ? 'var(--dan)' : 'var(--ok)' }}>{money(bal)}</b></td>
           <td className="num">{bal > 0 ? c.days_overdue : '—'}</td>
           <td><span className={'tag ' + st.tagCls}>{st.icon} {st.label}</span></td>
-          <td className="c" style={{ whiteSpace: 'nowrap' }}>
-            <button className="btn sm o" onClick={() => setModal(<Ledger id={c.id} shop={shop} onClose={() => setModal(null)} setModal={setModal} />)}>Ledger</button>{' '}
-            <button className="btn sm g" onClick={() => setModal(<PaymentForm cust={c} onClose={() => setModal(null)} onDone={() => { setModal(null); refresh(); }} />)}>💵</button>{' '}
-            {c.mobile && bal > 0 && <button className="btn sm w" title="WhatsApp Reminder" onClick={() => setModal(<WhatsAppModal cust={c} shop={shop} onClose={() => setModal(null)} />)}>WA</button>}{' '}
-            <button className="btn sm o" onClick={() => setModal(<CustomerForm cust={c} onClose={() => setModal(null)} onDone={() => { setModal(null); refresh(); }} />)}>✎</button>
+          <td>
+            <div className="actions">
+              <button className="btn sm o" onClick={() => setModal(<Ledger id={c.id} shop={shop} onClose={() => setModal(null)} setModal={setModal} />)}>Khata</button>
+              <button className="btn sm g" title="Payment receive karein" onClick={() => setModal(<PaymentForm cust={c} onClose={() => setModal(null)} onDone={() => { setModal(null); refresh(); }} />)}>💵</button>
+              {c.mobile && bal > 0 && <button className="btn sm w" title="WhatsApp reminder" onClick={() => setModal(<WhatsAppModal cust={c} shop={shop} onClose={() => setModal(null)} />)}>💬</button>}
+              <button className="btn sm o" title="Edit" onClick={() => setModal(<CustomerForm cust={c} onClose={() => setModal(null)} onDone={() => { setModal(null); refresh(); }} />)}>✎</button>
+            </div>
           </td>
         </tr>;
-      }) : <tr><td colSpan={6} className="empty">No customers found</td></tr>}</tbody>
-    </table></div></div>
+      }) : <tr><td colSpan={6}><Empty icon="👥" title="Koi customer nahi mila"
+        sub="Upar search ya filter badal kar dekhein" /></td></tr>}</tbody>
+    </table></div>
   </>;
 }
 
@@ -908,20 +1050,22 @@ function Ledger({ id, onClose, setModal, shop }) {
       <button className="x" onClick={onClose}>×</button>
     </div>
     <div className="mb">
-      <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 16 }}>
-        <Avatar c={c} size={64} />
-        <div><div style={{ fontSize: 19, fontWeight: 700 }}>{c.name}</div>
-          <div className="sml mut">{c.mobile || '—'}{c.address ? ' · ' + c.address : ''}</div>
-          {c.note && <div className="sml mut">{c.note}</div>}</div>
+      <div className="rowflex" style={{
+        gap: 14, marginBottom: 18, padding: 14, background: 'var(--panel2)',
+        borderRadius: 14, border: '1px solid var(--line)'
+      }}>
+        <Avatar c={c} size={58} className="av-lg" />
+        <div className="rf-txt" style={{ minWidth: 0 }}>
+          <b style={{ fontSize: 18, letterSpacing: '-.02em' }}>{c.name}</b>
+          <span>{c.mobile || 'Mobile nahi'}{c.address ? ' · ' + c.address : ''}</span>
+          {c.note && <span style={{ marginTop: 2 }}>📝 {c.note}</span>}
+        </div>
       </div>
-      <div className="grid g4" style={{ marginBottom: 14 }}>
-        <div className={'kpi ' + (bal > 0 ? 'dg' : 'ok')}>
-          <div className="l">{bal < 0 ? 'Advance Paid' : 'Balance Due'}</div>
-          <div className="v">{money(Math.abs(bal))}</div></div>
-        <div className="kpi wr"><div className="l">Credit Limit</div>
-          <div className="v" style={{ fontSize: 18 }}>{Number(c.credit_limit) ? money(c.credit_limit) : '—'}</div></div>
-        <div className="kpi bl"><div className="l">Days Overdue</div><div className="v">{c.days_overdue || 0}</div></div>
-        <div className="kpi ok"><div className="l">Total Transactions</div><div className="v">{c.ledger.length}</div></div>
+      <div className="grid g4" style={{ marginBottom: 16 }}>
+        <Kpi cls={bal > 0 ? 'dg' : 'ok'} icon="💰" l={bal < 0 ? 'Advance Paid' : 'Baaki Rashi'} v={money(Math.abs(bal))} />
+        <Kpi cls="wr" icon="🎯" l="Credit Limit" v={Number(c.credit_limit) ? money(c.credit_limit) : '—'} />
+        <Kpi cls="bl" icon="⏳" l="Din Pending" v={c.days_overdue || 0} />
+        <Kpi cls="ok" icon="🔁" l="Total Transactions" v={c.ledger.length} />
       </div>
 
       <div className="tw"><table>
@@ -932,12 +1076,12 @@ function Ledger({ id, onClose, setModal, shop }) {
           {c.ledger.length ? c.ledger.map((r, i) => (
             <tr key={i}><td>{fmtDate(r.date)}</td><td>{r.desc}</td>
               <td className="num">{Number(r.dr) ? money(r.dr) : '—'}</td>
-              <td className="num" style={{ color: 'var(--acc2)' }}>{Number(r.cr) ? money(r.cr) : '—'}</td>
+              <td className="num" style={{ color: 'var(--ok)' }}>{Number(r.cr) ? money(r.cr) : '—'}</td>
               <td className="num"><b>{money(r.bal)}</b></td></tr>
           )) : <tr><td colSpan={5} className="empty">No transactions recorded</td></tr>}
           {c.ledger.length > 0 && <tr style={{ background: 'var(--panel2)' }}>
             <td colSpan={4} className="r"><b>{bal < 0 ? 'Advance Paid' : 'Total Outstanding'}</b></td>
-            <td className="num"><b style={{ color: bal > 0 ? 'var(--dan)' : 'var(--acc2)' }}>{money(Math.abs(bal))}</b></td>
+            <td className="num"><b style={{ color: bal > 0 ? 'var(--dan)' : 'var(--ok)' }}>{money(Math.abs(bal))}</b></td>
           </tr>}
         </tbody>
       </table></div>
@@ -950,7 +1094,7 @@ function Ledger({ id, onClose, setModal, shop }) {
           <tbody>{c.bills.map(b => (
             <tr key={b.sale_id}><td>{b.bill_no}</td><td>{fmtDate(b.bill_date)}</td>
               <td className="num mut">{money(b.original_due)}</td>
-              <td className="num"><b style={{ color: Number(b.remaining) > 0 ? 'var(--dan)' : 'var(--acc2)' }}>
+              <td className="num"><b style={{ color: Number(b.remaining) > 0 ? 'var(--dan)' : 'var(--ok)' }}>
                 {Number(b.remaining) > 0 ? money(b.remaining) : 'Cleared'}</b></td></tr>
           ))}</tbody>
         </table></div>
@@ -1047,38 +1191,45 @@ function Bills({ setModal, refresh }) {
 
   return <>
     <div className="bar">
-      <div style={{ flex: '0 0 150px' }}><label>From</label>
+      <div className="f half" style={{ flex: '0 0 160px' }}><label>From</label>
         <input type="date" value={from} onChange={e => setFrom(e.target.value)} /></div>
-      <div style={{ flex: '0 0 150px' }}><label>To</label>
+      <div className="f half" style={{ flex: '0 0 160px' }}><label>To</label>
         <input type="date" value={to} onChange={e => setTo(e.target.value)} /></div>
-      <div style={{ flex: 1 }}><label>Search</label>
-        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Bill no / Customer" /></div>
+      <div className="f" style={{ flex: 2, minWidth: 200 }}><label>Search</label>
+        <div className="search-wrap">
+          <span className="s-ico">🔍</span>
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Bill no ya customer ka naam" style={{ paddingLeft: 36 }} />
+        </div></div>
     </div>
-    <div className="grid g4" style={{ marginBottom: 14 }}>
-      <Kpi cls="bl" l="Bills" v={live.length} />
-      <Kpi cls="ok" l="Total Sale" v={money(live.reduce((s, r) => s + Number(r.total), 0))} />
-      <Kpi cls="ok" l="Profit" v={money(live.reduce((s, r) => s + Number(r.profit), 0))} />
-      <Kpi cls="dg" l="Credit Given" v={money(live.reduce((s, r) => s + Number(r.due), 0))} />
+    <div className="grid g4" style={{ marginBottom: 16 }}>
+      <Kpi cls="bl" icon="📋" l="Bills" v={live.length} s="Is period mein" />
+      <Kpi cls="ok" icon="💰" l="Total Sale" v={money(live.reduce((s, r) => s + Number(r.total), 0))} />
+      <Kpi cls="ok" icon="📈" l="Munafa" v={money(live.reduce((s, r) => s + Number(r.profit), 0))} />
+      <Kpi cls="dg" icon="📒" l="Udhaar diya" v={money(live.reduce((s, r) => s + Number(r.due), 0))} />
     </div>
-    <div className="card"><div className="tw"><table>
+    <div className="tw"><table>
       <thead><tr><th>Bill No</th><th>Date</th><th>Customer</th>
-        <th className="r">Total</th><th className="r">Received</th><th className="r">Credit</th>
+        <th className="r">Total</th><th className="r">Mile</th><th className="r">Udhaar</th>
         <th>Mode</th><th /></tr></thead>
       <tbody>{data.length ? data.map(s => (
-        <tr key={s.id} style={s.is_void ? { opacity: .4, textDecoration: 'line-through' } : {}}>
-          <td><b>{s.bill_no}</b></td><td>{fmtDate(s.bill_date)}</td><td>{s.customer_name}</td>
+        <tr key={s.id} className={s.is_void ? 'row-void' : ''}>
+          <td><b>{s.bill_no}</b></td><td className="mut">{fmtDate(s.bill_date)}</td>
+          <td>{s.customer_name}</td>
           <td className="num"><b>{money(s.total)}</b></td><td className="num">{money(s.paid)}</td>
           <td className="num">{Number(s.due) > 0 ? <span className="tag t-r">{money(s.due)}</span> : <span className="tag t-g">0</span>}</td>
           <td><span className="tag t-b">{s.pay_mode}</span></td>
-          <td className="c" style={{ whiteSpace: 'nowrap' }}>
-            <button className="btn sm o" onClick={async () => printBill(await api('/sales/' + s.id))}>🖨</button>{' '}
-            {!s.is_void && <button className="btn sm r" onClick={async () => {
-              if (!confirm('Void this bill? Stock will be added back.')) return;
-              await api('/sales/' + s.id, { method: 'DELETE' }); toast('Bill voided', 'warn'); refresh();
-            }}>Void</button>}
+          <td>
+            <div className="actions">
+              <button className="btn sm o" title="Print" onClick={async () => printBill(await api('/sales/' + s.id))}>🖨</button>
+              {!s.is_void && <button className="btn sm r" onClick={async () => {
+                if (!confirm('Kya aap ye bill cancel (void) karna chahte hain?')) return;
+                await api('/sales/' + s.id, { method: 'DELETE' }); toast('Bill cancel ho gaya', 'warn'); refresh();
+              }}>Void</button>}
+            </div>
           </td></tr>
-      )) : <tr><td colSpan={8} className="empty">No bills found</td></tr>}</tbody>
-    </table></div></div>
+      )) : <tr><td colSpan={8}><Empty icon="📋" title="Is period mein koi bill nahi"
+        sub="Dates badal kar dobara koshish karein" /></td></tr>}</tbody>
+    </table></div>
   </>;
 }
 
@@ -1087,22 +1238,28 @@ function Payments({ setModal, refresh }) {
   if (loading) return <Loading />;
   if (err) return <ErrBox e={err} />;
   return <>
-    <div className="bar">
-      <button className="btn g" onClick={() => setModal(
-        <PaymentForm onClose={() => setModal(null)} onDone={() => { setModal(null); refresh(); }} />
-      )}>💵 Receive Payment</button>
+    <div className="bar" style={{ alignItems: 'center' }}>
+      <div className="f auto">
+        <button className="btn g" onClick={() => setModal(
+          <PaymentForm onClose={() => setModal(null)} onDone={() => { setModal(null); refresh(); }} />
+        )}>💵 Payment Receive Karein</button>
+      </div>
       <span className="sp" />
-      <span className="tag t-g">Total Received: {money(data.reduce((s, p) => s + Number(p.amount), 0))}</span>
+      <span className="tag t-g" style={{ padding: '8px 14px', fontSize: 13 }}>
+        Total Received: {money(data.reduce((s, p) => s + Number(p.amount), 0))}
+      </span>
     </div>
-    <div className="card"><div className="tw"><table>
+    <div className="tw"><table>
       <thead><tr><th>Date</th><th>Customer</th><th className="r">Amount</th>
         <th>Mode</th><th>Note</th></tr></thead>
       <tbody>{data.length ? data.map(p => (
-        <tr key={p.id}><td>{fmtDate(p.pay_date)}</td><td>{p.customer_name}</td>
-          <td className="num"><b>{money(p.amount)}</b></td><td>{p.mode}</td>
+        <tr key={p.id}><td className="mut">{fmtDate(p.pay_date)}</td><td><b>{p.customer_name}</b></td>
+          <td className="num"><b style={{ color: 'var(--ok)' }}>{money(p.amount)}</b></td>
+          <td><span className="tag t-m">{p.mode}</span></td>
           <td className="mut sml">{p.note}</td></tr>
-      )) : <tr><td colSpan={5} className="empty">No payments recorded</td></tr>}</tbody>
-    </table></div></div>
+      )) : <tr><td colSpan={5}><Empty icon="💵" title="Abhi koi payment record nahi"
+        sub="Upar button se payment add karein" /></td></tr>}</tbody>
+    </table></div>
   </>;
 }
 
@@ -1121,7 +1278,8 @@ function Expenses({ setModal, refresh }) {
   }
 
   return <>
-    <div className="card"><h3>New Expense</h3>
+    <div className="card">
+      <h3><span className="h3-ico">➕</span>Naya Kharcha</h3>
       <div className="row">
         <div className="field"><label>Category</label>
           <select value={f.category} onChange={e => setF({ ...f, category: e.target.value })}>
@@ -1129,26 +1287,33 @@ function Expenses({ setModal, refresh }) {
               .map(c => <option key={c} value={c}>{c}</option>)}
           </select></div>
         <div className="field"><label>Amount *</label>
-          <input type="number" value={f.amount} onChange={e => setF({ ...f, amount: e.target.value })} /></div>
+          <input type="number" value={f.amount} onChange={e => setF({ ...f, amount: e.target.value })} placeholder="0" /></div>
         <div className="field"><label>Date</label>
           <input type="date" value={f.exp_date} onChange={e => setF({ ...f, exp_date: e.target.value })} /></div>
         <div className="field"><label>Note</label>
-          <input value={f.note} onChange={e => setF({ ...f, note: e.target.value })} /></div>
+          <input value={f.note} onChange={e => setF({ ...f, note: e.target.value })} placeholder="Optional" /></div>
         <div className="field" style={{ flex: '0 0 auto', display: 'flex', alignItems: 'flex-end' }}>
           <button className="btn g" onClick={add}>＋ Add</button></div>
       </div>
     </div>
-    <div className="bar"><span className="sp" /><span className="tag t-r">This Month: {money(mtot)}</span></div>
-    <div className="card"><div className="tw"><table>
+    <div className="bar" style={{ alignItems: 'center' }}>
+      <div className="f" style={{ flex: '0 0 auto' }}>
+        <span className="tag t-r" style={{ padding: '9px 14px', fontSize: 13 }}>
+          Is mahine ka kharcha: {money(mtot)}
+        </span>
+      </div>
+    </div>
+    <div className="tw"><table>
       <thead><tr><th>Date</th><th>Category</th><th className="r">Amount</th><th>Note</th><th /></tr></thead>
       <tbody>{data.length ? data.map(e => (
-        <tr key={e.id}><td>{fmtDate(e.exp_date)}</td><td><span className="tag t-m">{e.category}</span></td>
+        <tr key={e.id}><td className="mut">{fmtDate(e.exp_date)}</td><td><span className="tag t-m">{e.category}</span></td>
           <td className="num"><b>{money(e.amount)}</b></td><td className="mut sml">{e.note}</td>
-          <td className="c"><button className="btn sm r" onClick={async () => {
+          <td><div className="actions"><button className="btn sm r" title="Hataayein" onClick={async () => {
             await api('/expenses/' + e.id, { method: 'DELETE' }); refresh();
-          }}>×</button></td></tr>
-      )) : <tr><td colSpan={5} className="empty">No expenses recorded</td></tr>}</tbody>
-    </table></div></div>
+          }}>×</button></div></td></tr>
+      )) : <tr><td colSpan={5}><Empty icon="📉" title="Koi kharcha record nahi"
+        sub="Upar form se naya kharcha add karein" /></td></tr>}</tbody>
+    </table></div>
   </>;
 }
 
@@ -1162,31 +1327,37 @@ function Items({ setModal, refresh }) {
 
   return <>
     <div className="bar">
-      <div style={{ flex: 2 }}><label>Search</label>
-        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Name / Code / Barcode" /></div>
-      <div style={{ flex: '0 0 auto', alignSelf: 'flex-end' }}>
+      <div className="f" style={{ flex: 2, minWidth: 200 }}><label>Search</label>
+        <div className="search-wrap">
+          <span className="s-ico">🔍</span>
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Naam / Code / Barcode" style={{ paddingLeft: 36 }} />
+        </div></div>
+      <div className="f auto">
         <button className="btn" onClick={() => setModal(
           <ItemForm onClose={() => setModal(null)} onDone={() => { setModal(null); refresh(); }} />
-        )}>＋ New Item</button></div>
+        )}>＋ Naya Item</button></div>
     </div>
-    <div className="card sml mut" style={{ padding: '10px 14px' }}>
-      This is a rate list only — for fast billing. Stock is not tracked.
+    <div className="info-note">
+      <span className="i-ico">ℹ️</span>
+      <span>Yeh sirf rate list hai — fast billing ke liye. Isme stock track nahi hota.</span>
     </div>
-    <div className="card"><div className="tw"><table>
+    <div className="tw"><table>
       <thead><tr><th>Code</th><th>Name</th><th>Category</th><th>Unit</th>
         <th className="r">Cost</th><th className="r">Sale Rate</th><th className="r">Margin</th><th /></tr></thead>
       <tbody>{data.length ? data.map(i => {
         const mg = Number(i.sale_rate) ? n2((i.sale_rate - i.cost_rate) / i.sale_rate * 100) : 0;
         return <tr key={i.id}>
           <td className="mut">{i.code}</td><td><b>{i.name}</b></td>
-          <td className="sml mut">{i.category}</td><td className="sml mut">{i.unit}</td>
+          <td className="sml mut">{i.category}</td>
+          <td><span className="tag t-m">{i.unit}</span></td>
           <td className="num mut">{money(i.cost_rate)}</td><td className="num"><b>{money(i.sale_rate)}</b></td>
-          <td className="num" style={{ color: mg > 0 ? 'var(--acc2)' : 'var(--dan)' }}>{mg}%</td>
-          <td className="c"><button className="btn sm o" onClick={() => setModal(
+          <td className="num" style={{ color: mg > 0 ? 'var(--ok)' : 'var(--dan)' }}>{mg}%</td>
+          <td><div className="actions"><button className="btn sm o" title="Edit" onClick={() => setModal(
             <ItemForm item={i} onClose={() => setModal(null)} onDone={() => { setModal(null); refresh(); }} />
-          )}>✎</button></td></tr>;
-      }) : <tr><td colSpan={8} className="empty">No items found</td></tr>}</tbody>
-    </table></div></div>
+          )}>✎</button></div></td></tr>;
+      }) : <tr><td colSpan={8}><Empty icon="🏷️" title="Koi item nahi mila"
+        sub="Search badalein ya naya item add karein" /></td></tr>}</tbody>
+    </table></div>
   </>;
 }
 
@@ -1267,49 +1438,56 @@ function Reports() {
 
   return <>
     <div className="bar">
-      <div style={{ flex: '0 0 190px' }}><label>Month</label>
+      <div className="f half" style={{ flex: '0 0 190px' }}><label>Month</label>
         <input type="month" value={ym} onChange={e => setYm(e.target.value)} /></div>
       <span className="sp" />
-      <button className="btn" onClick={() => printPL(pl, items)}>📄 P&L PDF</button>
-      <button className="btn r" onClick={() => printDefaulters(debtors.filter(c => Number(c.balance) > 0.5), agObj)}>
-        📄 Credit List PDF</button>
+      <div className="f auto"><button className="btn" onClick={() => printPL(pl, items)}>📄 P&amp;L PDF</button></div>
+      <div className="f auto">
+        <button className="btn o" onClick={() => printDefaulters(debtors.filter(c => Number(c.balance) > 0.5), agObj)}>
+          📄 Credit List PDF</button></div>
     </div>
-    <div className="grid g4" style={{ marginBottom: 14 }}>
-      <Kpi cls="bl" l="Sale" v={money(pl.sale)} s={`${pl.bills} bills`} />
-      <Kpi cls="ok" l="Gross Profit" v={money(pl.grossProfit)} s={`${pl.margin}%`} />
-      <Kpi cls="dg" l="Expenses" v={money(pl.expenses)} />
-      <Kpi cls={pl.netProfit >= 0 ? 'ok' : 'dg'} l="Net Profit" v={money(pl.netProfit)} />
+    <div className="grid g4" style={{ marginBottom: 16 }}>
+      <Kpi cls="bl" icon="💰" l="Sale" v={money(pl.sale)} s={`${pl.bills} bills`} />
+      <Kpi cls="ok" icon="📈" l="Gross Profit" v={money(pl.grossProfit)} s={`${pl.margin}% margin`} />
+      <Kpi cls="dg" icon="📉" l="Kharchay" v={money(pl.expenses)} />
+      <Kpi cls={pl.netProfit >= 0 ? 'ok' : 'dg'} icon="🏆" l="Net Profit" v={money(pl.netProfit)}
+        s={pl.netProfit >= 0 ? 'Munafa hua' : 'Nuksan hua'} />
     </div>
     <div className="grid g2">
-      <div className="card"><h3>Profit & Loss</h3>
+      <div className="card">
+        <h3><span className="h3-ico">🧮</span>Profit &amp; Loss</h3>
         <Row l="Total Sale" v={money(pl.sale)} />
-        <Row l="Cost of Goods (COGS)" v={money(pl.cogs)} />
-        <Row l="Gross Profit" v={money(pl.grossProfit)} color="var(--acc2)" />
+        <Row l="Maal ki laagat (COGS)" v={money(pl.cogs)} />
+        <Row l="Gross Profit" v={money(pl.grossProfit)} color="var(--ok)" />
         {pl.expByCat.map(c => <Row key={c.category} l={c.category} v={money(c.total)} />)}
         <div className="tot big"><span>Net Profit</span>
-          <span style={{ color: pl.netProfit >= 0 ? 'var(--acc2)' : 'var(--dan)' }}>{money(pl.netProfit)}</span></div>
+          <span style={{ color: pl.netProfit >= 0 ? 'var(--ok)' : 'var(--dan)' }}>{money(pl.netProfit)}</span></div>
       </div>
-      <div className="card"><h3>6 Months Profit</h3>
+      <div className="card">
+        <h3><span className="h3-ico">📊</span>6 Mahine ka Munafa</h3>
         <div className="bars">{last6.map(m => (
           <div className="b" key={m.ym} title={money(m.profit)}>
+            <em>{Math.abs(Number(m.profit)) >= 1000 ? (Number(m.profit) / 1000).toFixed(1) + 'k' : n2(m.profit)}</em>
             <i style={{
               height: `${Math.max(3, Math.abs(Number(m.profit)) / mx * 100)}%`,
-              background: Number(m.profit) >= 0 ? 'var(--acc2)' : 'var(--dan)'
+              background: Number(m.profit) >= 0 ? 'var(--ok)' : 'var(--dan)'
             }} /><span>{m.ym.slice(5)}</span></div>
         ))}</div>
       </div>
     </div>
-    <div className="card"><h3>Item-wise Profit</h3>
-      <div className="tw"><table>
+    <div className="card">
+      <h3><span className="h3-ico">🏷️</span>Item-wise Munafa</h3>
+      <div className="tw">
+        <table>
         <thead><tr><th>#</th><th>Item</th><th className="r">Qty</th>
           <th className="r">Sale</th><th className="r">Cost</th><th className="r">Profit</th></tr></thead>
         <tbody>{items.length ? items.slice(0, 25).map((r, i) => (
-          <tr key={i}><td className="mut">{i + 1}</td><td>{r.name}</td>
+          <tr key={i}><td className="mut">{i + 1}</td><td><b>{r.name}</b></td>
             <td className="num">{n2(r.qty)}</td><td className="num">{money(r.sale)}</td>
             <td className="num mut">{money(r.cost)}</td>
-            <td className="num" style={{ color: Number(r.profit) >= 0 ? 'var(--acc2)' : 'var(--dan)' }}>
+            <td className="num" style={{ color: Number(r.profit) >= 0 ? 'var(--ok)' : 'var(--dan)' }}>
               <b>{money(r.profit)}</b></td></tr>
-        )) : <tr><td colSpan={6} className="empty">No data available</td></tr>}</tbody>
+        )) : <tr><td colSpan={6}><Empty icon="📊" title="Is mahine koi data nahi" /></td></tr>}</tbody>
       </table></div>
     </div>
   </>;
@@ -1339,7 +1517,7 @@ function Settings({ refresh }) {
 
   return <>
     <div className="grid g2" style={{ marginBottom: 16 }}>
-      <div className="card"><h3>Shop Details</h3>
+      <div className="card"><h3><span className="h3-ico">🏪</span>Shop Details</h3>
         <div className="field"><label>Shop Name</label>
           <input value={shop.name || ''} onChange={e => set('name', e.target.value)} /></div>
         <div className="field"><label>Address</label>
@@ -1355,7 +1533,7 @@ function Settings({ refresh }) {
         <button className="btn g" onClick={save} disabled={busy}>{busy ? '…' : 'Save'}</button>
       </div>
 
-      <div className="card"><h3>⚙️ Auto Status Thresholds</h3>
+      <div className="card"><h3><span className="h3-ico">⚙️</span>Auto Status Thresholds</h3>
         <p className="sml mut" style={{ marginBottom: 12 }}>
           The system automatically determines Low, Medium, and High risk statuses based on balance amounts and overdue days.
         </p>
@@ -1394,7 +1572,7 @@ function Settings({ refresh }) {
       </div>
     </div>
 
-    <div className="card"><h3>Plan & Limits</h3>
+    <div className="card"><h3><span className="h3-ico">📦</span>Plan &amp; Limits</h3>
       <div className="tot"><span className="mut">Plan</span>
         <b><span className={'tag ' + (TIER === 'free' ? 't-b' : 't-g')}>{LIMITS.label}</span></b></div>
       <div className="tot"><span className="mut">Customers</span>
@@ -1416,10 +1594,10 @@ function Settings({ refresh }) {
 }
 
 function Bar({ pct }) {
-  return <div style={{ background: 'var(--panel2)', borderRadius: 6, height: 8, overflow: 'hidden', margin: '6px 0 12px' }}>
-    <div style={{
-      height: '100%', width: `${Math.max(2, Math.min(100, pct))}%`,
-      background: pct > 80 ? 'var(--dan)' : pct > 60 ? 'var(--warn)' : 'var(--acc2)'
+  return <div className="meter" style={{ margin: '6px 0 12px' }}>
+    <i style={{
+      width: `${Math.max(2, Math.min(100, pct))}%`,
+      background: pct > 80 ? 'var(--dan)' : pct > 60 ? 'var(--warn)' : 'var(--ok)'
     }} />
   </div>;
 }
@@ -1441,41 +1619,28 @@ function Weekly({ onClose, setModal, shop }) {
       <button className="x" onClick={onClose}>×</button>
     </div>
     <div className="mb">
-      <div className="grid g4" style={{ marginBottom: 14 }}>
-        <div className="kpi dg" style={{ cursor: 'pointer' }} onClick={() => setTab('high')}>
-          <div className="l">🔴 High Risk</div>
-          <div className="v">{highRisk.length}</div>
-          <div className="s">{money(highTot)}</div>
-        </div>
-        <div className="kpi wr" style={{ cursor: 'pointer' }} onClick={() => setTab('med')}>
-          <div className="l">🟠 Medium Risk</div>
-          <div className="v">{medRisk.length}</div>
-          <div className="s">{money(medTot)}</div>
-        </div>
-        <div className="kpi bl" style={{ cursor: 'pointer' }} onClick={() => setTab('overdue')}>
-          <div className="l">⏳ Old Dues</div>
-          <div className="v">{overdue.length}</div>
-          <div className="s">{money(odTot)}</div>
-        </div>
-        <div className="kpi ok" style={{ cursor: 'pointer' }} onClick={() => setTab('new')}>
-          <div className="l">🧾 New Credit This Week</div>
-          <div className="v">{newCredit.length} bills</div>
-          <div className="s">{money(newCredit.reduce((s, x) => s + Number(x.due), 0))}</div>
-        </div>
+      <div className="grid g4" style={{ marginBottom: 16 }}>
+        <Kpi cls="dg" icon="🔴" l="High Risk" v={highRisk.length} s={money(highTot)} onClick={() => setTab('high')} />
+        <Kpi cls="wr" icon="🟠" l="Medium Risk" v={medRisk.length} s={money(medTot)} onClick={() => setTab('med')} />
+        <Kpi cls="bl" icon="⏳" l="Purane Dues" v={overdue.length} s={money(odTot)} onClick={() => setTab('overdue')} />
+        <Kpi cls="ok" icon="🧾" l="Is hafte ka udhaar" v={newCredit.length} s={money(newCredit.reduce((s, x) => s + Number(x.due), 0))} onClick={() => setTab('new')} />
       </div>
 
-      <div className="pm" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: 14 }}>
+      <div className="seg wide" style={{ marginBottom: 16 }}>
         <button className={tab === 'high' ? 'on' : ''} onClick={() => setTab('high')}>
-          🔴 High Risk ({highRisk.length})
+          🔴 High ({highRisk.length})
         </button>
         <button className={tab === 'med' ? 'on' : ''} onClick={() => setTab('med')}>
           🟠 Medium ({medRisk.length})
         </button>
         <button className={tab === 'overdue' ? 'on' : ''} onClick={() => setTab('overdue')}>
-          ⏳ Old Dues ({overdue.length})
+          ⏳ Purane ({overdue.length})
+        </button>
+        <button className={tab === 'new' ? 'on' : ''} onClick={() => setTab('new')}>
+          🧾 Naya ({newCredit.length})
         </button>
         <button className={tab === 'big' ? 'on' : ''} onClick={() => setTab('big')}>
-          ⚠ Limit Crossed ({big.length})
+          ⚠ Limit ({big.length})
         </button>
       </div>
 
@@ -1485,7 +1650,7 @@ function Weekly({ onClose, setModal, shop }) {
             <thead><tr><th>Customer</th><th>Mobile</th><th className="r">Amount</th><th className="r">Days</th><th /></tr></thead>
             <tbody>{highRisk.map(c => (
               <tr key={c.id}>
-                <td><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Avatar c={c} size={28} /><b>{c.name}</b></div></td>
+                <td><div className="rowflex"><Avatar c={c} size={32} /><div className="rf-txt"><b>{c.name}</b></div></div></td>
                 <td className="mut">{c.mobile || '—'}</td>
                 <td className="num"><b style={{ color: 'var(--dan)' }}>{money(c.balance)}</b></td>
                 <td className="num">{c.days_overdue}</td>
@@ -1503,7 +1668,7 @@ function Weekly({ onClose, setModal, shop }) {
               </tr>
             ))}</tbody>
           </table></div>
-        ) : <div className="empty">No high risk customers ✓</div>
+        ) : <Empty icon="✅" title="No high risk customers" />
       )}
 
       {tab === 'med' && (
@@ -1512,7 +1677,7 @@ function Weekly({ onClose, setModal, shop }) {
             <thead><tr><th>Customer</th><th>Mobile</th><th className="r">Amount</th><th className="r">Days</th><th /></tr></thead>
             <tbody>{medRisk.map(c => (
               <tr key={c.id}>
-                <td><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Avatar c={c} size={28} /><b>{c.name}</b></div></td>
+                <td><div className="rowflex"><Avatar c={c} size={32} /><div className="rf-txt"><b>{c.name}</b></div></div></td>
                 <td className="mut">{c.mobile || '—'}</td>
                 <td className="num"><b style={{ color: 'var(--warn)' }}>{money(c.balance)}</b></td>
                 <td className="num">{c.days_overdue}</td>
@@ -1530,7 +1695,7 @@ function Weekly({ onClose, setModal, shop }) {
               </tr>
             ))}</tbody>
           </table></div>
-        ) : <div className="empty">No medium risk customers ✓</div>
+        ) : <Empty icon="✅" title="No medium risk customers" />
       )}
 
       {tab === 'overdue' && (
@@ -1539,7 +1704,7 @@ function Weekly({ onClose, setModal, shop }) {
             <thead><tr><th>Customer</th><th>Mobile</th><th className="r">Amount</th><th className="r">Days</th><th /></tr></thead>
             <tbody>{overdue.map(c => (
               <tr key={c.id}>
-                <td><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Avatar c={c} size={28} /><b>{c.name}</b></div></td>
+                <td><div className="rowflex"><Avatar c={c} size={32} /><div className="rf-txt"><b>{c.name}</b></div></div></td>
                 <td className="mut">{c.mobile || '—'}</td>
                 <td className="num"><b>{money(c.balance)}</b></td>
                 <td className="num">{c.days_overdue}</td>
@@ -1557,7 +1722,23 @@ function Weekly({ onClose, setModal, shop }) {
               </tr>
             ))}</tbody>
           </table></div>
-        ) : <div className="empty">No old dues ✓</div>
+        ) : <Empty icon="✅" title="No old dues" />
+      )}
+
+      {tab === 'new' && (
+        newCredit.length ? (
+          <div className="tw"><table>
+            <thead><tr><th>Bill No</th><th>Customer</th><th>Date</th><th className="r">Udhaar</th></tr></thead>
+            <tbody>{newCredit.map((b, i) => (
+              <tr key={i}>
+                <td><b>{b.bill_no}</b></td>
+                <td>{b.customer_name}</td>
+                <td className="mut">{fmtDate(b.bill_date)}</td>
+                <td className="num"><b style={{ color: 'var(--dan)' }}>{money(b.due)}</b></td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+        ) : <Empty icon="✅" title="Is hafte koi naya udhaar nahi" />
       )}
 
       {tab === 'big' && (
@@ -1566,7 +1747,7 @@ function Weekly({ onClose, setModal, shop }) {
             <thead><tr><th>Customer</th><th className="r">Balance</th><th className="r">Limit</th><th /></tr></thead>
             <tbody>{big.map(c => (
               <tr key={c.id}>
-                <td><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Avatar c={c} size={28} /><b>{c.name}</b></div></td>
+                <td><div className="rowflex"><Avatar c={c} size={32} /><div className="rf-txt"><b>{c.name}</b></div></div></td>
                 <td className="num"><b style={{ color: 'var(--dan)' }}>{money(c.balance)}</b></td>
                 <td className="num mut">{money(c.credit_limit)}</td>
                 <td className="c">
@@ -1583,7 +1764,7 @@ function Weekly({ onClose, setModal, shop }) {
               </tr>
             ))}</tbody>
           </table></div>
-        ) : <div className="empty">No limit crossed customers ✓</div>
+        ) : <Empty icon="✅" title="No limit crossed customers" />
       )}
     </div>
     <div className="mf"><button className="btn g" onClick={onClose}>OK, Reviewed</button></div>

@@ -1,17 +1,30 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
 
+const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0', 'ok'];
+
 export default function Login() {
   const [pin, setPin] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  const [shake, setShake] = useState(false);
   const ref = useRef(null);
 
-  useEffect(() => { ref.current?.focus(); }, []);
+  useEffect(() => {
+    ref.current?.focus();
+    if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark');
+    document.body.classList.add('auth');
+    return () => document.body.classList.remove('auth');
+  }, []);
+
+  function toggleTheme() {
+    const dark = document.body.classList.toggle('dark');
+    localStorage.setItem('theme', dark ? 'dark' : 'light');
+  }
 
   async function submit(value) {
     const p = value ?? pin;
-    if (p.length < 4) { setErr('At least 4 digits'); return; }
+    if (p.length < 4) { fail('Kam se kam 4 digit ka PIN daalein'); return; }
     setBusy(true); setErr('');
     try {
       const r = await fetch('/api/auth/login', {
@@ -20,12 +33,19 @@ export default function Login() {
       });
       const d = await r.json();
       if (d.ok) { location.href = '/'; return; }
-      if (d.locked) setErr(`Too many failed attempts — try after ${d.waitMin} minutes`);
-      else if (d.error === 'PIN_NOT_SET') setErr('PIN not set — run npm run pin');
-      else setErr(`Incorrect PIN${d.left != null ? ` — ${d.left} attempts left` : ''}`);
+      if (d.locked) fail(`Bahut saari galat koshishein — ${d.waitMin} minute baad koshish karein`);
+      else if (d.error === 'PIN_NOT_SET') fail('PIN set nahi hai — npm run pin chalaayein');
+      else fail(`Galat PIN${d.left != null ? ` — ${d.left} koshish baaki` : ''}`);
       setPin('');
-    } catch { setErr('Connection failed'); }
+    } catch { fail('Connection fail ho gaya — dobara koshish karein'); }
     setBusy(false);
+  }
+
+  function fail(msg) {
+    setErr(msg);
+    setShake(true);
+    setTimeout(() => setShake(false), 420);
+    if (navigator.vibrate) navigator.vibrate(60);
   }
 
   function press(d) {
@@ -34,121 +54,92 @@ export default function Login() {
     if (d === 'ok') { submit(); return; }
     const np = (pin + d).slice(0, 6);
     setPin(np); setErr('');
-    if (np.length === 6) setTimeout(() => submit(np), 120);
+    if (np.length === 6) setTimeout(() => submit(np), 130);
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      width: '100%',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '24px 16px',
-      boxSizing: 'border-box',
-      background: 'radial-gradient(circle at top, #1e293b 0%, #0f1420 100%)'
-    }}>
-      <div className="card" style={{
-        width: '100%',
-        maxWidth: 360,
-        margin: '0 auto',
-        padding: '32px 24px',
-        textAlign: 'center',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.45)',
-        border: '1px solid var(--line)',
-        borderRadius: 16
-      }}>
-        <div style={{
-          width: 72,
-          height: 72,
-          borderRadius: 18,
-          overflow: 'hidden',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: 16,
-          boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-          border: '1px solid var(--line)'
-        }}>
-          <img src="/logo.png" alt="Salhotra Multi Store" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        </div>
-
-        <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 2, letterSpacing: '-0.02em' }}>Udhar Book</h2>
-        <p className="mut sml" style={{ marginBottom: 4, fontSize: 13, fontWeight: 600 }}>Salhotra Multi Store</p>
-        <p className="mut sml" style={{ marginBottom: 20, fontSize: 12 }}>Enter your PIN</p>
-
-        {/* PIN Indicators */}
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 24 }}>
-          {[0, 1, 2, 3, 4, 5].map(i => (
-            <span key={i} style={{
-              width: 14,
-              height: 14,
-              borderRadius: '50%',
-              background: i < pin.length ? 'var(--acc)' : 'var(--line)',
-              transform: i < pin.length ? 'scale(1.15)' : 'scale(1)',
-              boxShadow: i < pin.length ? '0 0 10px rgba(59, 130, 246, 0.6)' : 'none',
-              transition: 'all .18s cubic-bezier(0.4, 0, 0.2, 1)'
-            }} />
-          ))}
-        </div>
-
-        <input
-          ref={ref} type="password" inputMode="numeric" value={pin}
-          onChange={e => { setPin(e.target.value.replace(/\D/g, '').slice(0, 6)); setErr(''); }}
-          onKeyDown={e => e.key === 'Enter' && submit()}
-          style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }}
-        />
-
-        {err && (
-          <div className="tag t-r" style={{
-            display: 'block',
-            width: '100%',
-            padding: '10px 12px',
-            marginBottom: 16,
-            fontSize: 12,
-            lineHeight: 1.4,
-            borderRadius: 8
-          }}>
-            {err}
+    <div className="auth-wrap">
+      {/* ---------- brand / info panel ---------- */}
+      <aside className="auth-brand">
+        <div className="auth-brand-top">
+          <div className="auth-logo">
+            <img src="/logo.png" alt="Salhotra Multi Store" />
           </div>
-        )}
-
-        {/* Keypad */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 12,
-          width: '100%',
-          maxWidth: 280,
-          margin: '0 auto'
-        }}>
-          {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0', 'ok'].map(k => (
-            <button key={k} onClick={() => press(k)} disabled={busy}
-              className={'btn ' + (k === 'ok' ? 'g' : k === 'del' ? 'o' : 'o')}
-              style={{
-                height: 56,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: k.length === 1 ? 22 : 16,
-                fontWeight: 600,
-                borderRadius: 12,
-                userSelect: 'none',
-                WebkitTapHighlightColor: 'transparent',
-                transition: 'all 0.15s ease'
-              }}>
-              {k === 'del' ? '⌫' : k === 'ok' ? '✓' : k}
-            </button>
-          ))}
+          <div>
+            <div className="auth-brand-name">Udhar Book</div>
+            <div className="auth-brand-sub">Salhotra Multi Store</div>
+          </div>
         </div>
 
-        <p className="mut sml" style={{ marginTop: 22, fontSize: 12 }}>
-          {busy ? 'Checking…' : '15 min lockout after 5 failed attempts'}
-        </p>
-      </div>
+        <div className="auth-brand-body">
+          <h1>Apni dukaan ka<br />poora hisaab — <span>ek jagah.</span></h1>
+          <p>Khata, billing, payment reminders aur munafa ki report — sab kuch aapke mobile aur computer par, bina internet ke bhi.</p>
+
+          <ul className="auth-points">
+            <li><span className="ap-ico">🔐</span>
+              <span><b>Secure PIN</b>PIN hash hokar save hota hai, kabhi plain-text nahi</span></li>
+            <li><span className="ap-ico">📒</span>
+              <span><b>Khata &amp; Ledger</b>Har customer ka udhaar, bill-wise aur FIFO hisaab</span></li>
+            <li><span className="ap-ico">💬</span>
+              <span><b>WhatsApp Reminder</b>Ek tap mein payment yaad dilayein</span></li>
+          </ul>
+        </div>
+
+        <div className="auth-brand-foot">
+          <span className="auth-dot" /> Data aapke device aur secure database mein surakshit hai
+        </div>
+      </aside>
+
+      {/* ---------- PIN panel ---------- */}
+      <main className="auth-main">
+        <button className="auth-theme" onClick={toggleTheme} title="Light / Dark theme">🌓</button>
+
+        <div className="auth-card">
+          <div className="auth-head">
+            <h2>PIN daal kar kholein</h2>
+            <p>Apna 4 se 6 digit ka shop PIN enter karein</p>
+          </div>
+
+          <div className={'pin-dots' + (shake ? ' shake' : '')} onClick={() => ref.current?.focus()}>
+            {[0, 1, 2, 3, 4, 5].map(i => (
+              <span key={i} className={
+                'pin-dot' +
+                (i < pin.length ? ' on' : '') +
+                (i === pin.length && !busy ? ' next' : '')
+              } />
+            ))}
+          </div>
+
+          <input
+            ref={ref} type="password" inputMode="numeric" autoComplete="current-password"
+            value={pin}
+            onChange={e => { setPin(e.target.value.replace(/\D/g, '').slice(0, 6)); setErr(''); }}
+            onKeyDown={e => e.key === 'Enter' && submit()}
+            className="pin-input" aria-label="PIN"
+          />
+
+          {err && <div className="auth-err"><span>⚠️</span>{err}</div>}
+
+          <div className="keypad">
+            {KEYS.map(k => (
+              <button
+                key={k} onClick={() => press(k)} disabled={busy}
+                className={'key' + (k === 'ok' ? ' ok' : '') + (k === 'del' ? ' del' : '')}
+                aria-label={k === 'del' ? 'Delete' : k === 'ok' ? 'Submit' : k}
+              >
+                {k === 'del' ? '⌫' : k === 'ok' ? (busy ? '…' : '✓') : k}
+              </button>
+            ))}
+          </div>
+
+          <div className="auth-secure">
+            <span className="as-ico">🛡️</span>
+            <span>5 baar galat PIN par 15 minute ke liye lock ho jayega</span>
+          </div>
+        </div>
+
+        <p className="auth-fm">Udhar Book · Salhotra Multi Store</p>
+      </main>
     </div>
   );
 }

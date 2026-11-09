@@ -31,6 +31,8 @@
     - Monthly P&L and Item Profit Breakdown
 - 🌐 **Bilingual Support (Hindi ⇄ English)**: Instant one-click toggle for the entire UI.
 - 📱 **Responsive PWA**: Install directly to the Home Screen on Android, iPhone, and Desktop without an app store.
+- 🎨 **Premium UI/UX (v2)**: Light-first design with forest-green accents, icon KPI cards, a welcome dashboard,
+  a redesigned sidebar, mobile bottom navigation, skeleton loaders, friendly empty states, and a full dark theme.
 
 ---
 
@@ -111,6 +113,40 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser and log 
 
 ---
 
+## 🎨 UI/UX (v2)
+
+The interface was rebuilt around a small set of design tokens in `public/app.css`:
+
+| Area | What changed |
+| :--- | :--- |
+| **Theme** | Light-first soft background with forest-green accents (`--acc: #12714a`). Dark mode is opt-in via the `🌓 Theme` button and is remembered in `localStorage`. |
+| **Dashboard** | Welcome panel with greeting + today's date, icon KPI cards, cleaner 6-month bars with value labels, polished credit sections. |
+| **Navigation** | Redesigned sidebar (brand card, grouped items, active pill, high-risk badge, store status footer, theme + logout). Sticky header with page title, subtitle, live date, alert bell and refresh. On phones: slide-in drawer **plus** a thumb-reach bottom nav. |
+| **PIN login** | Split-screen sign-in — forest-green brand panel with product highlights on the left, PIN dots + keypad + security messaging on the right. Shake + haptic feedback on a wrong PIN. |
+| **Components** | Restyled cards, tables (sticky headers), buttons, forms, segmented controls, modals (sticky header/footer, pop-in animation), toasts, skeletons and empty states. |
+| **Responsive** | Tuned for phones, tablets and laptops — `dvh` heights, safe-area padding for iPhone, 16px inputs so iOS never zooms, tables scroll horizontally inside rounded shells. |
+
+No data or API flows were changed — this is a presentation-layer update only.
+
+---
+
+## 🚀 Demo mode (no database required)
+
+Want to click around without setting up Neon? The app ships an embedded PostgreSQL
+([PGlite](https://pglite.dev)) that boots with six months of realistic sample data.
+
+```bash
+npm install
+echo "DEMO_DB=1" >> .env.local
+echo "JWT_SECRET=demo-secret" >> .env.local
+npm run demo          # http://localhost:3000
+```
+
+Log in with any PIN whose hash you put in `SHOP_PIN_HASH` (generate one with `npm run pin`).
+Data lives in memory and resets on every restart, so nothing you do here touches production.
+
+---
+
 ## 📦 Production Deployment
 
 ### Option A: Deploy on Vercel
@@ -137,6 +173,7 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser and log 
 | `npm run pin` | Helper CLI to generate secure bcrypt base64 PIN hash |
 | `npm run db:push` | Executes `schema.sql` on Neon database |
 | `npm run db:seed` | Populates database with starter catalog items & demo customers |
+| `npm run demo` | Runs the dev server against the embedded demo database (`DEMO_DB=1`) |
 
 ---
 
