@@ -9,7 +9,8 @@
     "start": "next start",
     "db:push": "node scripts/setup-db.mjs",
     "db:seed": "node scripts/seed.mjs",
-    "pin": "node scripts/make-pin.mjs"
+    "pin": "node scripts/make-pin.mjs",
+    "demo": "next dev"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
@@ -22,6 +23,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "@electric-sql/pglite": "^0.5.15"
   }
 }
