@@ -664,7 +664,7 @@ body.dark .bars .b i{background:linear-gradient(180deg,var(--acc),color-mix(in s
 
 /* ---------------- mobile bottom nav ---------------- */
 .mobnav{
-  display:none;position:fixed;left:0;right:0;bottom:0;z-index:140;
+  display:none;position:fixed;left:0;right:0;bottom:0;z-index:90;
   background:color-mix(in srgb,var(--panel) 94%,transparent);
   backdrop-filter:saturate(160%) blur(14px);
   -webkit-backdrop-filter:saturate(160%) blur(14px);
@@ -975,3 +975,112 @@ a:focus-visible,button:focus-visible{outline:none;box-shadow:var(--ring);border-
 
 /* the "tw" table shell sitting inside a card should not double up its border */
 .card .tw{box-shadow:none}
+
+/* =====================================================================
+   smartphone hardening
+   ===================================================================== */
+/* momentum scrolling + no page-level bounce while a panel is scrolling */
+#view,#nav,.modal,.tw{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.tw{-webkit-overflow-scrolling:touch}
+
+/* date / month fields share a row on tablets, go full width on phones */
+.bar>.f.date{flex:0 0 165px}
+
+/* keep the POS "Save & Print" reachable without scrolling to the very end */
+.pos-actions{padding-top:14px}
+
+/* ---------------- tablets & small laptops ---------------- */
+@media(max-width:1120px){
+  .bar>.f.date{flex:1 1 calc(50% - 6px);min-width:0}
+}
+
+/* ---------------- phones ---------------- */
+@media(max-width:980px){
+  /* iPhone notch / home-indicator safe areas */
+  #top{padding-top:calc(10px + env(safe-area-inset-top))}
+  #side{
+    padding-top:env(safe-area-inset-top);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .side-brand{padding-top:calc(18px + env(safe-area-inset-top))}
+
+  /* two filter fields per row instead of one per row */
+  .bar{gap:10px}
+  .bar>.f{flex:1 1 calc(50% - 5px);min-width:0}
+  .bar>.f.date{flex:1 1 calc(50% - 5px);min-width:0}
+  .bar>.f.auto{flex:1 1 calc(50% - 5px)}
+  .bar>.f.auto .btn,.bar>.f.auto>.btn{width:100%}
+
+  /* modal buttons: two per row so labels never get crushed */
+  .mf{gap:8px}
+  .mf .btn{flex:1 1 calc(50% - 4px);min-width:0}
+
+  /* sticky checkout bar inside the POS panel */
+  .pos-actions{
+    position:sticky;bottom:calc(78px + env(safe-area-inset-bottom));
+    background:var(--panel);z-index:6;padding-top:12px;
+    margin-top:14px;border-top:1px solid var(--line);
+  }
+
+  .bars{height:150px}
+  .seg.wide button{min-width:92px}
+}
+
+@media(max-width:680px){
+  .bars{height:132px;gap:7px}
+  .bars .b em{font-size:10px}
+  .welcome h1{font-size:20px}
+  .kpi .v{font-size:21px}
+  .mb{padding:16px}
+  .mh{padding:14px 16px}
+  .mf{padding:12px 16px}
+}
+
+@media(max-width:480px){
+  #top{padding-left:12px;padding-right:12px;gap:10px}
+  #top h2{font-size:16.5px}
+  .top-lhs{gap:10px}
+  .bar{gap:9px}
+  .bar>.f,.bar>.f.date{flex:1 1 100%}
+  .kpi .v{font-size:20px}
+  .kpi-ico{width:28px;height:28px;font-size:13px}
+  .welcome{padding:18px 16px;border-radius:18px}
+  .welcome h1{font-size:19px}
+  .welcome .w-sub{font-size:12.5px}
+  .welcome .w-date{font-size:12px}
+  /* full-width primary actions read better than half-width on tiny screens */
+  .mf .btn{flex:1 1 100%}
+  /* tables: tighter cells so more fits before scrolling sideways */
+  table{font-size:13px}
+  thead th,td{padding:9px 10px}
+  .actions{gap:5px}
+  .btn.sm{padding:7px 10px;font-size:12.5px}
+  .pos-actions .btn{padding:13px 12px}
+  .mobnav button{padding:6px 1px}
+}
+
+/* very narrow phones (iPhone SE / older Android) */
+@media(max-width:380px){
+  #top h2{font-size:15.5px}
+  .crumb{font-size:11px}
+  .kpi{padding:13px}
+  .kpi .v{font-size:19px}
+  .card{padding:13px}
+  .btn{padding:10px 13px;font-size:13.5px}
+  .bars{gap:5px}
+  .mobnav button{font-size:9px}
+  .mobnav button i{font-size:16px}
+}
+
+/* short screens in landscape — keep the keypad usable */
+@media(max-height:520px) and (orientation:landscape){
+  .auth-wrap{grid-template-columns:1fr 1fr}
+  .auth-brand{padding:18px 24px}
+  .auth-brand-body{display:none}
+  .auth-main{padding:18px 20px}
+  .keypad{max-width:280px;gap:8px}
+  .key{height:46px;font-size:18px}
+  .auth-head{margin-bottom:14px}
+  .pin-dots{margin-bottom:12px}
+  .auth-secure,.auth-fm{display:none}
+}
